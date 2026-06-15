@@ -1,36 +1,51 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 👑 Đường Đến Ngai Vàng World Cup 2026
 
-## Getting Started
+Sân chơi dự đoán & soi kèo World Cup 2026 cho anh em bạn bè. **Điểm ảo, chơi cho vui — không tiền thật.**
 
-First, run the development server:
+> Repo: `winningworldcup26`. Tài liệu thiết kế & lộ trình build: `docs/superpowers/`.
 
+## Tính năng (theo lộ trình)
+- **Lịch thi đấu**: list / brackets / calendar, tỉ số & thông số, thông tin trước trận
+- **Pickems**: dự đoán đội thắng từng trận + bracket cả giải
+- **Kèo cá cược điểm ảo**: 1x2 · Tài Xỉu · Phạt góc · Thẻ (auto-settle)
+- **Kinh tế điểm**: drip hằng ngày, vay (lãi), nạp qua share/quảng cáo, sổ cái
+- **Bảng xếp hạng** + share card MXH
+- **Tin tức** do AI lên bài hằng ngày + **chatbot RAG** (chỉ trả lời theo bài đã đăng)
+- **Đăng nhập** Google + magic-link (Facebook thêm sau)
+
+Hiện đã xong **M0 — nền tảng**. Các milestone kế tiếp: xem `docs/superpowers/plans/`.
+
+## Stack
+Next.js 16 (App Router) · TypeScript · Tailwind v4 + shadcn/ui · Prisma 6 + Postgres (pgvector) · Auth.js v5 · Vitest · Docker. Deploy: Vercel (+ Neon, Resend).
+
+## Yêu cầu
+- **Node ≥ 20.19** (khuyến nghị 22 — có sẵn `.nvmrc`): `nvm use`
+- Docker (chạy Postgres local)
+
+## Chạy local
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+nvm use                          # Node 22 theo .nvmrc
+cp .env.example .env
+# sinh AUTH_SECRET rồi dán vào .env:
+node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"
+npm install
+npm run db:up                    # Postgres qua docker-compose
+npm run db:migrate               # áp schema
+npm run dev                      # http://localhost:3000
+```
+**Magic-link khi dev:** không cần email server — link đăng nhập **in ra console**. Đặt `AUTH_RESEND_KEY` để gửi email thật qua Resend.
+**Google:** để trống `AUTH_GOOGLE_ID/SECRET` thì nút Google tự ẩn.
+
+## Test
+```bash
+npm test
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Đóng gói image (cho k8s sau)
+```bash
+docker build -t winningworldcup26 .
+docker run -p 3000:3000 --env-file .env winningworldcup26
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Biến môi trường
+Xem `.env.example`: `DATABASE_URL` · `AUTH_SECRET` · `AUTH_GOOGLE_ID/SECRET` · `AUTH_RESEND_KEY` · `EMAIL_FROM`.
