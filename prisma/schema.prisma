@@ -21,6 +21,7 @@ model User {
   picks         Pick[]
   txns          WalletTransaction[]
   bets          Bet[]
+  loans         Loan[]
 }
 
 model Account {
@@ -268,4 +269,25 @@ model Bet {
 
   @@index([userId])
   @@index([marketId])
+}
+
+// ---------- Vay điểm (M4) ----------
+
+enum LoanStatus {
+  ACTIVE
+  REPAID
+}
+
+model Loan {
+  id          String     @id @default(cuid())
+  userId      String
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  principal   Int // số vay gốc
+  interestPct Int        @default(10)
+  outstanding Int // còn phải trả (gốc + lãi - đã trả)
+  status      LoanStatus @default(ACTIVE)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([userId, status])
 }
