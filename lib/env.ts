@@ -17,6 +17,12 @@ const schema = z.object({
   // AI + cron + data (M5+), tất cả optional — bật khi deploy:
   ANTHROPIC_API_KEY: z.string().optional(),
   AI_MODEL: z.string().optional(),
+  // Chatbot LLM (Azure OpenAI / OpenAI-compatible) — provider-agnostic:
+  LLM_PROVIDER: z.string().optional(), // "azure" | "openai" | ...
+  LLM_BASE_URL: z.string().optional(),
+  LLM_API_VERSION: z.string().optional(),
+  LLM_MODEL: z.string().optional(),
+  LLM_API_KEY: z.string().optional(),
   CRON_SECRET: z.string().optional(),
   FOOTBALL_DATA_API_KEY: z.string().optional(),
   ADMIN_EMAILS: z.string().optional(), // danh sách email admin, phân tách dấu phẩy

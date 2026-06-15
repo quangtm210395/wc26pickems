@@ -1,8 +1,5 @@
-import Anthropic from "@anthropic-ai/sdk";
 import { prisma } from "@/lib/prisma";
-import { aiConfigured } from "@/lib/ai-author";
-
-const MODEL = process.env.AI_MODEL ?? "claude-opus-4-8";
+import { chatComplete, llmConfigured } from "@/lib/llm";
 
 export function stripDiacritics(s: string): string {
   return s
@@ -76,39 +73,42 @@ export async function answerQuestion(
       sources: [],
     };
   }
-  if (!aiConfigured()) {
+  const sources = top.map((p) => ({ title: p.title, slug: p.slug }));
+
+  if (!llmConfigured()) {
     return {
-      answer:
-        "Chatbot AI chưa được bật (thiếu ANTHROPIC_API_KEY). Nhưng có vài bài liên quan dưới đây:",
-      sources: top.map((p) => ({ title: p.title, slug: p.slug })),
+      answer: "Chatbot AI chưa được bật. Nhưng có vài bài liên quan dưới đây:",
+      sources,
     };
   }
 
-  const client = new Anthropic();
   const context = top.map((p, i) => `### Bài ${i + 1}: ${p.title}\n${p.body}`).join("\n\n");
-  const res = await client.messages.create({
-    model: MODEL,
-    max_tokens: 800,
-    system:
-      "Bạn là trợ lý hỏi đáp của app dự đoán World Cup. CHỈ trả lời dựa trên các bài viết được cung cấp bên dưới. " +
-      "Nếu câu trả lời không có trong các bài, hãy nói rõ là chưa có bài viết đề cập và khuyên người dùng xem mục Tin tức. " +
-      "Trả lời bằng tiếng Việt, ngắn gọn, thân thiện. TUYỆT ĐỐI không bịa thông tin ngoài các bài.",
-    messages: [
-      {
-        role: "user",
-        content: `Các bài viết hiện có:\n\n${context}\n\n---\nCâu hỏi của người dùng: ${question}`,
-      },
-    ],
-  });
-
-  const answer = res.content
-    .filter((b): b is Anthropic.TextBlock => b.type === "text")
-    .map((b) => b.text)
-    .join("")
-    .trim();
-
-  return {
-    answer: answer || "Xin lỗi, mình chưa trả lời được câu này.",
-    sources: top.map((p) => ({ title: p.title, slug: p.slug })),
-  };
+  try {
+    const answer = await chatComplete(
+      [
+        {
+          role: "system",
+          content:
+            "Bạn là trợ lý hỏi đáp của app dự đoán World Cup. CHỈ trả lời dựa trên các bài viết được cung cấp bên dưới. " +
+            "Nếu câu trả lời không có trong các bài, hãy nói rõ là chưa có bài viết đề cập và khuyên người dùng xem mục Tin tức. " +
+            "Trả lời bằng tiếng Việt, ngắn gọn, thân thiện. TUYỆT ĐỐI không bịa thông tin ngoài các bài.",
+        },
+        {
+          role: "user",
+          content: `Các bài viết hiện có:\n\n${context}\n\n---\nCâu hỏi của người dùng: ${question}`,
+        },
+      ],
+      { maxTokens: 800, temperature: 0.3 },
+    );
+    return {
+      answer: answer || "Xin lỗi, mình chưa trả lời được câu này.",
+      sources,
+    };
+  } catch (err) {
+    console.error("[rag] chatComplete failed:", err);
+    return {
+      answer: "Xin lỗi, trợ lý đang bận chút. Bạn xem tạm các bài liên quan bên dưới nhé!",
+      sources,
+    };
+  }
 }
