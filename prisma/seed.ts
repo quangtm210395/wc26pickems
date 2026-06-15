@@ -209,6 +209,46 @@ const MATCHES: MatchDef[] = [
   { group: "L", date: "2026-06-27", home: "CRO", away: "GHA", hs: null, as: null },
 ];
 
+// Giờ kickoff THẬT (UTC), tra từ Wikipedia + chuyển múi giờ. Key: GROUP-HOME-AWAY.
+const KICKOFFS: Record<string, string> = {
+  "A-MEX-RSA": "2026-06-11T19:00:00Z", "A-KOR-CZE": "2026-06-12T02:00:00Z",
+  "A-CZE-RSA": "2026-06-18T16:00:00Z", "A-MEX-KOR": "2026-06-19T01:00:00Z",
+  "A-CZE-MEX": "2026-06-25T01:00:00Z", "A-RSA-KOR": "2026-06-25T01:00:00Z",
+  "B-CAN-BIH": "2026-06-12T19:00:00Z", "B-QAT-SUI": "2026-06-13T19:00:00Z",
+  "B-SUI-BIH": "2026-06-18T19:00:00Z", "B-CAN-QAT": "2026-06-18T22:00:00Z",
+  "B-SUI-CAN": "2026-06-24T19:00:00Z", "B-BIH-QAT": "2026-06-24T19:00:00Z",
+  "C-BRA-MAR": "2026-06-13T22:00:00Z", "C-HAI-SCO": "2026-06-14T01:00:00Z",
+  "C-SCO-MAR": "2026-06-19T22:00:00Z", "C-BRA-HAI": "2026-06-20T00:30:00Z",
+  "C-SCO-BRA": "2026-06-24T22:00:00Z", "C-MAR-HAI": "2026-06-24T22:00:00Z",
+  "D-USA-PAR": "2026-06-13T01:00:00Z", "D-AUS-TUR": "2026-06-14T04:00:00Z",
+  "D-USA-AUS": "2026-06-19T19:00:00Z", "D-TUR-PAR": "2026-06-20T03:00:00Z",
+  "D-TUR-USA": "2026-06-26T02:00:00Z", "D-PAR-AUS": "2026-06-26T02:00:00Z",
+  "E-GER-CUW": "2026-06-14T17:00:00Z", "E-CIV-ECU": "2026-06-14T23:00:00Z",
+  "E-GER-CIV": "2026-06-20T20:00:00Z", "E-ECU-CUW": "2026-06-21T00:00:00Z",
+  "E-CUW-CIV": "2026-06-25T20:00:00Z", "E-ECU-GER": "2026-06-25T20:00:00Z",
+  "F-NED-JPN": "2026-06-14T20:00:00Z", "F-SWE-TUN": "2026-06-15T02:00:00Z",
+  "F-NED-SWE": "2026-06-20T17:00:00Z", "F-TUN-JPN": "2026-06-21T04:00:00Z",
+  "F-JPN-SWE": "2026-06-25T23:00:00Z", "F-TUN-NED": "2026-06-25T23:00:00Z",
+  "G-BEL-EGY": "2026-06-15T19:00:00Z", "G-IRN-NZL": "2026-06-16T01:00:00Z",
+  "G-BEL-IRN": "2026-06-21T19:00:00Z", "G-NZL-EGY": "2026-06-22T01:00:00Z",
+  "G-EGY-IRN": "2026-06-27T03:00:00Z", "G-NZL-BEL": "2026-06-27T03:00:00Z",
+  "H-ESP-CPV": "2026-06-15T16:00:00Z", "H-KSA-URU": "2026-06-15T22:00:00Z",
+  "H-ESP-KSA": "2026-06-21T16:00:00Z", "H-URU-CPV": "2026-06-21T22:00:00Z",
+  "H-CPV-KSA": "2026-06-27T00:00:00Z", "H-URU-ESP": "2026-06-27T00:00:00Z",
+  "I-FRA-SEN": "2026-06-16T19:00:00Z", "I-IRQ-NOR": "2026-06-16T22:00:00Z",
+  "I-FRA-IRQ": "2026-06-22T21:00:00Z", "I-NOR-SEN": "2026-06-23T00:00:00Z",
+  "I-NOR-FRA": "2026-06-26T19:00:00Z", "I-SEN-IRQ": "2026-06-26T19:00:00Z",
+  "J-ARG-ALG": "2026-06-17T01:00:00Z", "J-AUT-JOR": "2026-06-17T04:00:00Z",
+  "J-ARG-AUT": "2026-06-22T17:00:00Z", "J-JOR-ALG": "2026-06-23T03:00:00Z",
+  "J-ALG-AUT": "2026-06-28T02:00:00Z", "J-JOR-ARG": "2026-06-28T02:00:00Z",
+  "K-POR-COD": "2026-06-17T17:00:00Z", "K-UZB-COL": "2026-06-18T02:00:00Z",
+  "K-POR-UZB": "2026-06-23T17:00:00Z", "K-COL-COD": "2026-06-24T02:00:00Z",
+  "K-COL-POR": "2026-06-27T23:30:00Z", "K-COD-UZB": "2026-06-27T23:30:00Z",
+  "L-ENG-CRO": "2026-06-17T20:00:00Z", "L-GHA-PAN": "2026-06-17T23:00:00Z",
+  "L-ENG-GHA": "2026-06-23T20:00:00Z", "L-PAN-CRO": "2026-06-23T23:00:00Z",
+  "L-PAN-ENG": "2026-06-27T21:00:00Z", "L-CRO-GHA": "2026-06-27T21:00:00Z",
+};
+
 function simpleHash(s: string): number {
   let h = 5381;
   for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) & 0xffffffff;
@@ -226,13 +266,6 @@ const PREVIEWS = [
 
 function getPreview(id: string): string {
   return PREVIEWS[simpleHash(id + "p") % PREVIEWS.length];
-}
-
-/** Giờ kickoff deterministic (UTC) suy từ ngày + externalId, để sắp xếp đẹp. */
-function kickoffFor(date: string, id: string): Date {
-  const hours = [13, 16, 19, 22];
-  const h = hours[simpleHash(id) % hours.length];
-  return new Date(`${date}T${String(h).padStart(2, "0")}:00:00Z`);
 }
 
 // ─── Main ────────────────────────────────────────────────────────────────────
@@ -271,7 +304,7 @@ async function main() {
   for (const m of MATCHES) {
     const externalId = `wc26-${m.group}-${m.home}-${m.away}`;
     const done = m.hs != null && m.as != null;
-    const kickoff = kickoffFor(m.date, externalId);
+    const kickoff = new Date(KICKOFFS[`${m.group}-${m.home}-${m.away}`] ?? `${m.date}T18:00:00Z`);
     await prisma.match.create({
       data: {
         externalId,
