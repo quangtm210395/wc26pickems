@@ -3,6 +3,7 @@
 - **Ngày:** 2026-06-15
 - **Trạng thái:** Draft chờ review
 - **Repo:** `winningworldcup26`
+- **Tên hiển thị (display name):** **Đường Đến Ngai Vàng World Cup 2026**
 - **Bối cảnh:** Sân chơi dự đoán/soi kèo WC 2026 (48 đội) cho bạn bè. Điểm ảo, không tiền thật. WC đã khởi tranh 11/06, knock-out (R32) ~28/06, CK 19/07.
 
 ---
@@ -16,6 +17,7 @@ Web app full-stack cho nhóm bạn bè cùng dự đoán, soi kèo, cá cược 
 - Tự cập nhật lịch/tỉ số/thông số từ API miễn phí, admin override khi thiếu.
 - Một con số điểm duy nhất cho mọi hoạt động → dễ hiểu, dễ flex.
 - Deploy free, nhanh (Vercel + Neon), kèm Docker image để sau lên k8s.
+- **Mobile-first:** đa số user click từ MXH sang là mobile → thiết kế ưu tiên mobile trước, desktop sau.
 
 **Không phải mục tiêu (v1):** tiền thật, app mobile native, realtime websocket, đăng nhập Facebook (làm sau), mạng quảng cáo thật (stub trước), đa ngôn ngữ ngoài tiếng Việt, anti-cheat phức tạp.
 
@@ -30,8 +32,9 @@ Web app full-stack cho nhóm bạn bè cùng dự đoán, soi kèo, cá cược 
 | 3 | Tỉ lệ kèo & cược | **AI/admin set** — fixed multiplier *hoặc* parimutuel, điểm ảo |
 | 4 | Đăng nhập | **Google + email magic-link** ở v1; **Facebook thêm sau** (cần app review) |
 | 5 | Mô hình điểm | **1 loại điểm duy nhất** — vừa là ví cược vừa là điểm BXH |
-| 6 | Tên repo | `winningworldcup26` (display name chỉnh sau) |
+| 6 | Tên repo / hiển thị | `winningworldcup26` · UI: **"Đường Đến Ngai Vàng World Cup 2026"** |
 | 7 | AI lên bài | Tạo ở trạng thái **chờ duyệt**, admin 1-click publish (cấu hình được sang auto) |
+| 8 | Ưu tiên UI | **Mobile-first** (traffic chủ yếu từ MXH trên mobile) |
 
 ---
 
@@ -44,7 +47,7 @@ Web app full-stack cho nhóm bạn bè cùng dự đoán, soi kèo, cá cược 
   - Lên bài + chatbot: **Claude API (Anthropic)**, tái dùng phương pháp của skill `predicting-football-matches` (đã có local) để soi kèo/đặt tỉ lệ và viết nhận định.
   - Embeddings cho RAG: **Voyage AI** (đối tác Anthropic, có free tier) → lưu pgvector. Provider embedding tách interface, đổi được.
 - **Jobs nền:** **Vercel Cron** — sync data, settle kèo, drip điểm, AI lên bài, refresh leaderboard.
-- **UI:** Tailwind CSS + shadcn/ui; recharts cho thông số; OG image (`@vercel/og`) cho share card.
+- **UI:** **Mobile-first** (responsive, bottom tab-bar điều hướng, touch target ≥44px, ưu tiên layout 1 cột dọc, hạn chế hover-only) — Tailwind CSS + shadcn/ui; recharts cho thông số; OG image (`@vercel/og`) cho share card.
 - **Realtime:** polling + on-demand revalidation (SWR/`revalidatePath`). Đủ ở quy mô bạn bè; Vercel free không có websocket bền.
 - **Đóng gói:** Dockerfile multi-stage (Next standalone output) + docker-compose (app + postgres-pgvector) cho local dev & k8s sau.
 - **Cấu trúc thư mục (dự kiến):** `app/` (routes), `lib/` (domain: scoring, betting, economy, rag, data-adapters), `components/`, `prisma/`, `cron/`, `tests/`. Mỗi domain module tách biệt, test độc lập.
@@ -99,7 +102,7 @@ Web app full-stack cho nhóm bạn bè cùng dự đoán, soi kèo, cá cược 
 
 ## 6. Các module
 
-1. **Matches & Lịch** — adapter nguồn (mặc định football-data.org free, interface đổi nguồn) + admin override mọi field. Mỗi trận: tỉ số, trạng thái, thông số (sút/trúng/góc/thẻ/kiểm soát), thông tin trước trận (đội hình dự kiến, phong độ, link bài). **3 view: List / Brackets (48 đội) / Calendar.**
+1. **Matches & Lịch** — adapter nguồn (mặc định football-data.org free, interface đổi nguồn) + admin override mọi field. Mỗi trận: tỉ số, trạng thái, thông số (sút/trúng/góc/thẻ/kiểm soát), thông tin trước trận (đội hình dự kiến, phong độ, link bài). **3 view: List / Brackets (48 đội) / Calendar.** Trên mobile: List/Calendar là view mặc định; Brackets cho cuộn ngang + pinch-zoom hoặc thu gọn theo từng nhánh.
 2. **Pickems** — pick W/D/L + bracket; khóa theo giờ; thang điểm theo vòng.
 3. **Kèo cá cược** — 1x2 / Tài Xỉu / Góc / Thẻ; fixed/parimutuel; auto-settle. Mọi kèo thắng cộng vào **cùng 1 số điểm tổng**.
 4. **Ví & kinh tế** — số dư, drip, vay (loan + lãi), nạp (share/ads), sổ cái.
@@ -196,4 +199,3 @@ Web app full-stack cho nhóm bạn bè cùng dự đoán, soi kèo, cá cược 
 - Có thêm "matchday bonus" ngoài drip không.
 - Mốc gắn AdSense thật.
 - Có log hội thoại chatbot không (privacy).
-- Display name chính thức của app.
