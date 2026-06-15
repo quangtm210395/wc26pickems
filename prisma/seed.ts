@@ -297,12 +297,127 @@ async function main() {
     }
   }
 
+  // 4. Upsert Knockout matches
+  const knockoutCount = await seedKnockout();
+  const grandTotal = totalMatches + knockoutCount;
+
   console.log(`\n✅ Seed hoàn tất!`);
-  console.log(`   Bảng:           ${groupLetters.length}`);
-  console.log(`   Đội:            ${Object.keys(teamIdMap).length}`);
-  console.log(`   Trận:           ${totalMatches}`);
-  console.log(`   Đã đấu (FINISHED):  ${finished}`);
-  console.log(`   Chưa đấu (SCHEDULED): ${totalMatches - finished}`);
+  console.log(`   Bảng:                 ${groupLetters.length}`);
+  console.log(`   Đội:                  ${Object.keys(teamIdMap).length}`);
+  console.log(`   Trận vòng bảng:       ${totalMatches}`);
+  console.log(`   Trận knock-out:       ${knockoutCount}`);
+  console.log(`   Tổng trận:            ${grandTotal}`);
+  console.log(`   Đã đấu (FINISHED):    ${finished}`);
+  console.log(`   Chưa đấu (SCHEDULED): ${totalMatches - finished + knockoutCount}`);
+}
+
+// ─── Knockout match definitions ─────────────────────────────────────────────
+
+interface KnockoutDef {
+  stage: Stage;
+  bracketSlot: string;
+  kickoff: Date;
+}
+
+function makeKnockoutMatches(): KnockoutDef[] {
+  const matches: KnockoutDef[] = [];
+
+  // R32: 16 matches, 2026-06-28 → 2026-07-03
+  // Spread 16 matches over 6 days (days 0..5), ~2-3 per day, 3 slots per day
+  const r32Kickoffs: Date[] = [];
+  {
+    const baseDay = new Date("2026-06-28T14:00:00Z");
+    const slots = [14, 17, 20]; // UTC hours
+    let slotIdx = 0;
+    let dayIdx = 0;
+    for (let i = 0; i < 16; i++) {
+      const d = new Date(baseDay);
+      d.setUTCDate(28 + dayIdx);
+      d.setUTCHours(slots[slotIdx]);
+      r32Kickoffs.push(new Date(d));
+      slotIdx++;
+      if (slotIdx >= 3) { slotIdx = 0; dayIdx++; }
+    }
+  }
+  for (let i = 1; i <= 16; i++) {
+    matches.push({ stage: Stage.R32, bracketSlot: `R32-${i}`, kickoff: r32Kickoffs[i - 1] });
+  }
+
+  // R16: 8 matches, 2026-07-04 → 2026-07-07
+  const r16Kickoffs: Date[] = [];
+  {
+    const slots = [14, 20];
+    let slotIdx = 0;
+    let dayIdx = 0;
+    for (let i = 0; i < 8; i++) {
+      const d = new Date("2026-07-04T00:00:00Z");
+      d.setUTCDate(4 + dayIdx);
+      d.setUTCHours(slots[slotIdx]);
+      r16Kickoffs.push(new Date(d));
+      slotIdx++;
+      if (slotIdx >= 2) { slotIdx = 0; dayIdx++; }
+    }
+  }
+  for (let i = 1; i <= 8; i++) {
+    matches.push({ stage: Stage.R16, bracketSlot: `R16-${i}`, kickoff: r16Kickoffs[i - 1] });
+  }
+
+  // QF: 4 matches, 2026-07-09 → 2026-07-11
+  const qfDays = [9, 9, 11, 11];
+  const qfHours = [14, 20, 14, 20];
+  for (let i = 1; i <= 4; i++) {
+    const d = new Date(`2026-07-${String(qfDays[i - 1]).padStart(2, "0")}T${String(qfHours[i - 1]).padStart(2, "0")}:00:00Z`);
+    matches.push({ stage: Stage.QF, bracketSlot: `QF-${i}`, kickoff: d });
+  }
+
+  // SF: 2 matches, 2026-07-14 and 2026-07-15
+  matches.push({ stage: Stage.SF, bracketSlot: "SF-1", kickoff: new Date("2026-07-14T20:00:00Z") });
+  matches.push({ stage: Stage.SF, bracketSlot: "SF-2", kickoff: new Date("2026-07-15T20:00:00Z") });
+
+  // THIRD: 1 match, 2026-07-18
+  matches.push({ stage: Stage.THIRD, bracketSlot: "THIRD-1", kickoff: new Date("2026-07-18T16:00:00Z") });
+
+  // FINAL: 1 match, 2026-07-19
+  matches.push({ stage: Stage.FINAL, bracketSlot: "FINAL-1", kickoff: new Date("2026-07-19T20:00:00Z") });
+
+  return matches;
+}
+
+async function seedKnockout() {
+  const knockoutDefs = makeKnockoutMatches();
+  console.log(`  → Upsert ${knockoutDefs.length} trận knock-out...`);
+
+  for (const def of knockoutDefs) {
+    const externalId = `seed-ko-${def.bracketSlot}`;
+    const venueIdx = simpleHash(externalId + "venue") % VENUES.length;
+
+    await prisma.match.upsert({
+      where: { externalId },
+      update: {
+        stage: def.stage,
+        bracketSlot: def.bracketSlot,
+        kickoff: def.kickoff,
+        status: MatchStatus.SCHEDULED,
+        venue: VENUES[venueIdx],
+        groupName: null,
+        homeTeamId: null,
+        awayTeamId: null,
+      },
+      create: {
+        externalId,
+        stage: def.stage,
+        bracketSlot: def.bracketSlot,
+        kickoff: def.kickoff,
+        status: MatchStatus.SCHEDULED,
+        venue: VENUES[venueIdx],
+        groupName: null,
+        homeTeamId: null,
+        awayTeamId: null,
+      },
+    });
+  }
+
+  return knockoutDefs.length;
 }
 
 main()

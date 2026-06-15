@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import type { Match, Team, MatchStats } from "@prisma/client";
+import type { Match, Team, MatchStats, Stage } from "@prisma/client";
 
 export type MatchWithTeams = Match & { homeTeam: Team | null; awayTeam: Team | null };
 export type MatchDetail = MatchWithTeams & { stats: MatchStats | null };
@@ -87,4 +87,46 @@ export function groupByGroup(matches: MatchWithTeams[]): GroupBucket[] {
   return [...map.entries()]
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([name, ms]) => ({ name, matches: ms }));
+}
+
+// ---------- Knockout helpers ----------
+
+export async function getKnockoutMatches(): Promise<MatchWithTeams[]> {
+  return prisma.match.findMany({
+    where: { stage: { not: "GROUP" } },
+    include: { homeTeam: true, awayTeam: true },
+    orderBy: { kickoff: "asc" },
+  });
+}
+
+const STAGE_ORDER: Stage[] = ["R32", "R16", "QF", "SF", "THIRD", "FINAL"];
+
+const STAGE_LABELS: Record<Stage, string> = {
+  GROUP: "Vòng bảng",
+  R32: "Vòng 1/16",
+  R16: "Vòng 1/8",
+  QF: "Tứ kết",
+  SF: "Bán kết",
+  THIRD: "Tranh hạng 3",
+  FINAL: "Chung kết",
+};
+
+export type StageBucket = { stage: Stage; label: string; matches: MatchWithTeams[] };
+
+export function groupByStage(matches: MatchWithTeams[]): StageBucket[] {
+  const map = new Map<Stage, MatchWithTeams[]>();
+  for (const m of matches) {
+    const s = m.stage as Stage;
+    let arr = map.get(s);
+    if (!arr) {
+      arr = [];
+      map.set(s, arr);
+    }
+    arr.push(m);
+  }
+  return STAGE_ORDER.filter((s) => map.has(s)).map((s) => ({
+    stage: s,
+    label: STAGE_LABELS[s],
+    matches: map.get(s)!,
+  }));
 }
