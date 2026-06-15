@@ -1,5 +1,5 @@
 {
-  "buildCommand": "prisma migrate deploy && next build",
+  "_comment": "Migrations chạy tay (prisma migrate deploy với DIRECT_URL) — không để trong build vì hay treo khi build connect Neon.",
   "crons": [
     { "path": "/api/cron/ai-author", "schedule": "0 0 * * *" },
     { "path": "/api/cron/settle", "schedule": "0 1 * * *" }
