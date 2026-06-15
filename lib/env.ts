@@ -13,6 +13,11 @@ const schema = z.object({
   AUTH_GOOGLE_SECRET: z.string().optional(),
   AUTH_RESEND_KEY: z.string().optional(),
   EMAIL_FROM: z.string().optional(),
+  // AI + cron + data (M5+), tất cả optional — bật khi deploy:
+  ANTHROPIC_API_KEY: z.string().optional(),
+  AI_MODEL: z.string().optional(),
+  CRON_SECRET: z.string().optional(),
+  FOOTBALL_DATA_API_KEY: z.string().optional(),
 });
 
 export type Env = z.infer<typeof schema>;

@@ -117,6 +117,7 @@ model Match {
   stats       MatchStats?
   picks       Pick[]
   markets     Market[]
+  posts       Post[]
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
@@ -290,4 +291,40 @@ model Loan {
   updatedAt   DateTime   @updatedAt
 
   @@index([userId, status])
+}
+
+// ---------- Tin tức / CMS (M5) ----------
+
+enum PostType {
+  PREVIEW // trước trận
+  RECAP // sau trận
+  ANALYSIS // nhận định
+  TIP // soi kèo
+}
+
+enum PostStatus {
+  DRAFT
+  PUBLISHED
+}
+
+enum AuthorType {
+  AI
+  ADMIN
+}
+
+model Post {
+  id          String     @id @default(cuid())
+  slug        String     @unique
+  title       String
+  body        String // markdown
+  type        PostType   @default(ANALYSIS)
+  status      PostStatus @default(DRAFT)
+  authorType  AuthorType @default(AI)
+  matchId     String?
+  match       Match?     @relation(fields: [matchId], references: [id], onDelete: SetNull)
+  publishedAt DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([status, publishedAt])
 }
