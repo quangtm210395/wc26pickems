@@ -14,9 +14,12 @@ model User {
   emailVerified DateTime?
   image         String?
   role          String    @default("user") // "user" | "admin"
+  balance       Int       @default(0) // số dư điểm (cache = tổng ledger); BXH xếp theo field này
   createdAt     DateTime  @default(now())
   accounts      Account[]
   sessions      Session[]
+  picks         Pick[]
+  txns          WalletTransaction[]
 }
 
 model Account {
@@ -110,6 +113,7 @@ model Match {
   preview     String? // thông tin/nhận định trước trận
   externalId  String?     @unique // id từ football-data API để sync
   stats       MatchStats?
+  picks       Pick[]
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
@@ -131,4 +135,62 @@ model MatchStats {
   awayShots   Int?
   homePoss    Int? // % kiểm soát bóng
   awayPoss    Int?
+}
+
+// ---------- Pickems & Ví / sổ cái (M2) ----------
+
+enum PickChoice {
+  HOME
+  DRAW
+  AWAY
+}
+
+enum PickStatus {
+  PENDING
+  WON
+  LOST
+}
+
+enum TxType {
+  WELCOME // thưởng đăng ký
+  PICKEM_WIN // pickems đoán đúng
+  DRIP // điểm hằng ngày
+  BET_STAKE // đặt cược (trừ)
+  BET_WIN // thắng cược (cộng)
+  LOAN // vay
+  REPAY // trả nợ + lãi
+  SHARE // nạp qua share MXH
+  AD // nạp qua xem quảng cáo
+  ADJUST // admin chỉnh tay
+}
+
+model Pick {
+  id        String     @id @default(cuid())
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  matchId   String
+  match     Match      @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  choice    PickChoice
+  status    PickStatus @default(PENDING)
+  points    Int        @default(0)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@unique([userId, matchId])
+  @@index([matchId])
+}
+
+model WalletTransaction {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type         TxType
+  amount       Int // +/- điểm
+  balanceAfter Int // số dư SAU giao dịch (minh bạch)
+  refType      String? // "match" | "bet" | "loan" ...
+  refId        String?
+  note         String?
+  createdAt    DateTime @default(now())
+
+  @@index([userId, createdAt])
 }

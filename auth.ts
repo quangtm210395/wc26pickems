@@ -4,6 +4,7 @@ import Google from "next-auth/providers/google";
 import Resend from "next-auth/providers/resend";
 import type { Provider } from "next-auth/providers";
 import { prisma } from "@/lib/prisma";
+import { credit } from "@/lib/economy";
 
 // Magic-link qua Resend. Dev (chưa có AUTH_RESEND_KEY) → in link ra console
 // thay vì gửi email thật, để đăng nhập được mà không cần cấu hình email server.
@@ -34,6 +35,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       session.user.id = user.id;
       session.user.role = user.role;
       return session;
+    },
+  },
+  events: {
+    // Thưởng đăng ký 1.000đ khi tạo user mới (ghi vào ledger).
+    async createUser({ user }) {
+      if (user.id) {
+        await credit(prisma, {
+          userId: user.id,
+          type: "WELCOME",
+          amount: 1000,
+          note: "Thưởng đăng ký",
+        });
+      }
     },
   },
 });
