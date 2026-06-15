@@ -118,6 +118,8 @@ model Match {
   awayPens    Int?
   venue       String?
   preview     String? // thông tin/nhận định trước trận
+  homeLineup  String? // đội hình ra sân (text, nhập qua admin ingest)
+  awayLineup  String?
   externalId  String?     @unique // id từ football-data API để sync
   stats       MatchStats?
   picks       Pick[]

@@ -83,6 +83,38 @@ export default async function MatchPage({ params }: { params: Promise<{ id: stri
         </div>
       )}
 
+      {(m.homeLineup || m.awayLineup) && (
+        <div className="rounded-lg border p-3">
+          <h2 className="mb-2 text-center text-xs font-semibold uppercase text-muted-foreground">
+            Đội hình ra sân
+          </h2>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {m.homeLineup && (
+              <div>
+                <div className="mb-1 flex items-center gap-1.5 text-sm font-medium">
+                  <span>{m.homeTeam?.flag ?? "🏳️"}</span>
+                  <span>{m.homeTeam?.name ?? "Đội nhà"}</span>
+                </div>
+                <p className="whitespace-pre-line text-xs leading-relaxed text-muted-foreground">
+                  {m.homeLineup}
+                </p>
+              </div>
+            )}
+            {m.awayLineup && (
+              <div>
+                <div className="mb-1 flex items-center gap-1.5 text-sm font-medium">
+                  <span>{m.awayTeam?.flag ?? "🏳️"}</span>
+                  <span>{m.awayTeam?.name ?? "Đội khách"}</span>
+                </div>
+                <p className="whitespace-pre-line text-xs leading-relaxed text-muted-foreground">
+                  {m.awayLineup}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {m.preview && (
         <div className="rounded-lg border p-3">
           <h2 className="mb-1 text-xs font-semibold uppercase text-muted-foreground">Trước trận</h2>
