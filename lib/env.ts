@@ -7,6 +7,7 @@ const schema = z.object({
     .refine((v) => v.startsWith("postgres"), {
       message: "DATABASE_URL phải là postgres connection string",
     }),
+  DIRECT_URL: z.string().optional(),
   AUTH_SECRET: z.string().min(16, "AUTH_SECRET tối thiểu 16 ký tự"),
   // optional ở M0 — chỉ cần khi bật provider thật:
   AUTH_GOOGLE_ID: z.string().optional(),
