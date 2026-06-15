@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { Markdown } from "@/components/markdown";
 import { askChatbot } from "./actions";
 
 type Source = { title: string; slug: string };
@@ -11,7 +12,7 @@ type Msg = { role: "user" | "bot"; text: string; sources?: Source[] };
 const GREETING: Msg = {
   role: "bot",
   text:
-    "Chào bạn! Hỏi mình về các trận đấu, nhận định hay soi kèo nhé. Mình chỉ trả lời dựa trên các bài đã đăng ở mục Tin tức, không suy đoán lung tung. 😄",
+    "Chào bạn! 👋 Mình có thể giúp bạn:\n\n- 📅 **Lịch & kết quả** trận đấu (giờ VN)\n- 📰 **Nhận định / soi kèo** từ các bài đã đăng\n- 👤 **Lịch sử Pickems & số dư** của riêng bạn\n\nHỏi mình nhé — mình chỉ trả lời dựa trên dữ liệu thật trong app, không suy đoán lung tung. 😄",
 };
 
 export default function ChatPage() {
@@ -44,7 +45,11 @@ export default function ChatPage() {
                 : "mr-auto max-w-[90%] rounded-2xl border bg-card px-3 py-2 text-sm"
             }
           >
-            <p className="whitespace-pre-wrap">{m.text}</p>
+            {m.role === "bot" ? (
+              <Markdown>{m.text}</Markdown>
+            ) : (
+              <p className="whitespace-pre-wrap">{m.text}</p>
+            )}
             {m.sources && m.sources.length > 0 && (
               <div className="mt-2 space-y-1 border-t pt-2 text-xs">
                 <p className="text-muted-foreground">Nguồn:</p>

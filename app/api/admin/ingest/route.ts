@@ -3,12 +3,21 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { settleMatch } from "@/lib/scoring";
 import { settleAllMarkets } from "@/lib/betting";
-import type { MatchStatus, Prisma } from "@prisma/client";
+import type {
+  MatchStatus,
+  MarketType,
+  MarketMode,
+  MarketStatus,
+  Prisma,
+} from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 const STATUSES: MatchStatus[] = ["SCHEDULED", "LIVE", "FINISHED", "POSTPONED"];
+const MARKET_TYPES: MarketType[] = ["MATCH_1X2", "GOALS_OU", "CORNERS_OU", "CARDS_OU"];
+const MARKET_MODES: MarketMode[] = ["FIXED", "PARIMUTUEL"];
+const MARKET_STATUSES: MarketStatus[] = ["OPEN", "LOCKED", "SETTLED", "VOID"];
 
 type StatsInput = Partial<{
   homeCorners: number;
@@ -23,6 +32,15 @@ type StatsInput = Partial<{
   awayPoss: number;
 }>;
 
+type SelectionInput = { key: string; label?: string; odds?: number };
+type MarketInput = {
+  type?: string;
+  mode?: string;
+  line?: number | null;
+  status?: string;
+  selections?: SelectionInput[];
+};
+
 type Body = {
   matchExternalId?: string;
   status?: string;
@@ -33,6 +51,7 @@ type Body = {
   homeLineup?: string | null;
   awayLineup?: string | null;
   stats?: StatsInput;
+  markets?: MarketInput[];
 };
 
 /**
@@ -84,6 +103,62 @@ export async function POST(req: Request) {
     });
   }
 
+  // Kèo: tạo/cập nhật market + tỉ lệ (selections). Market định danh theo (match, type, line).
+  let marketsUpserted = 0;
+  if (Array.isArray(body.markets)) {
+    for (const mk of body.markets) {
+      if (!mk.type || !MARKET_TYPES.includes(mk.type as MarketType)) {
+        return NextResponse.json({ error: `market type không hợp lệ: ${mk.type}` }, { status: 400 });
+      }
+      if (mk.mode && !MARKET_MODES.includes(mk.mode as MarketMode)) {
+        return NextResponse.json({ error: `market mode không hợp lệ: ${mk.mode}` }, { status: 400 });
+      }
+      if (mk.status && !MARKET_STATUSES.includes(mk.status as MarketStatus)) {
+        return NextResponse.json(
+          { error: `market status không hợp lệ: ${mk.status}` },
+          { status: 400 },
+        );
+      }
+      const line = mk.line ?? null;
+      const existing = await prisma.market.findFirst({
+        where: { matchId: match.id, type: mk.type as MarketType, line },
+        select: { id: true },
+      });
+      let marketId: string;
+      if (existing) {
+        await prisma.market.update({
+          where: { id: existing.id },
+          data: {
+            ...(mk.mode ? { mode: mk.mode as MarketMode } : {}),
+            ...(mk.status ? { status: mk.status as MarketStatus } : {}),
+          },
+        });
+        marketId = existing.id;
+      } else {
+        const created = await prisma.market.create({
+          data: {
+            matchId: match.id,
+            type: mk.type as MarketType,
+            line,
+            mode: (mk.mode as MarketMode) ?? "FIXED",
+            ...(mk.status ? { status: mk.status as MarketStatus } : {}),
+          },
+          select: { id: true },
+        });
+        marketId = created.id;
+      }
+      for (const sel of mk.selections ?? []) {
+        if (!sel.key) continue;
+        await prisma.marketSelection.upsert({
+          where: { marketId_key: { marketId, key: sel.key } },
+          create: { marketId, key: sel.key, label: sel.label ?? sel.key, odds: sel.odds ?? 2.0 },
+          update: { label: sel.label ?? sel.key, odds: sel.odds ?? 2.0 },
+        });
+      }
+      marketsUpserted++;
+    }
+  }
+
   const finalStatus = (body.status as MatchStatus) ?? match.status;
   let settled: { pickems: number; bets: number } | null = null;
   if (finalStatus === "FINISHED") {
@@ -97,5 +172,11 @@ export async function POST(req: Request) {
   revalidatePath(`/match/${match.id}`);
   revalidatePath("/admin");
 
-  return NextResponse.json({ ok: true, externalId: extId, status: finalStatus, settled });
+  return NextResponse.json({
+    ok: true,
+    externalId: extId,
+    status: finalStatus,
+    settled,
+    marketsUpserted,
+  });
 }
