@@ -1,0 +1,20 @@
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: wc
+      POSTGRES_PASSWORD: wc
+      POSTGRES_DB: winningworldcup26
+    ports:
+      - "5432:5432"
+    volumes:
+      - wc_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wc -d winningworldcup26"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  wc_pgdata:
