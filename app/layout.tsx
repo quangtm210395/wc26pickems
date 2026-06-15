@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AppHeader } from "@/components/app-header";
 import { BottomNav } from "@/components/bottom-nav";
+import Link from "next/link";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
@@ -25,6 +26,13 @@ export default function RootLayout({
       <body className="min-h-dvh bg-background text-foreground">
         <AppHeader />
         <main className="mx-auto w-full max-w-md px-4 pb-24 pt-4">{children}</main>
+        <Link
+          href="/hoi-dap"
+          aria-label="Hỏi đáp AI"
+          className="fixed bottom-20 right-4 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-lg text-primary-foreground shadow-lg"
+        >
+          💬
+        </Link>
         <BottomNav />
       </body>
     </html>
