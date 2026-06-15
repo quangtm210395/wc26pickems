@@ -52,3 +52,83 @@ model VerificationToken {
 
   @@unique([identifier, token])
 }
+
+// ---------- Giải đấu (M1) ----------
+
+enum Stage {
+  GROUP
+  R32
+  R16
+  QF
+  SF
+  THIRD
+  FINAL
+}
+
+enum MatchStatus {
+  SCHEDULED
+  LIVE
+  FINISHED
+  POSTPONED
+}
+
+model Group {
+  id    String @id @default(cuid())
+  name  String @unique // "A".."L"
+  teams Team[]
+}
+
+model Team {
+  id          String   @id @default(cuid())
+  name        String // "Brazil", "Việt Nam"
+  code        String   @unique // FIFA code: "BRA", "VIE"
+  flag        String? // emoji cờ hoặc URL
+  groupId     String?
+  group       Group?   @relation(fields: [groupId], references: [id])
+  createdAt   DateTime @default(now())
+  homeMatches Match[]  @relation("home")
+  awayMatches Match[]  @relation("away")
+}
+
+model Match {
+  id          String      @id @default(cuid())
+  stage       Stage
+  groupName   String? // hiển thị vòng bảng "A".."L"
+  matchday    Int? // lượt vòng bảng 1..3
+  bracketSlot String? // vị trí trong nhánh knock-out: "R32-1".."FINAL"
+  kickoff     DateTime
+  status      MatchStatus @default(SCHEDULED)
+  homeTeamId  String?
+  awayTeamId  String?
+  homeTeam    Team?       @relation("home", fields: [homeTeamId], references: [id])
+  awayTeam    Team?       @relation("away", fields: [awayTeamId], references: [id])
+  homeScore   Int?
+  awayScore   Int?
+  homePens    Int? // loạt luân lưu (knock-out)
+  awayPens    Int?
+  venue       String?
+  preview     String? // thông tin/nhận định trước trận
+  externalId  String?     @unique // id từ football-data API để sync
+  stats       MatchStats?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@index([stage, kickoff])
+  @@index([kickoff])
+}
+
+model MatchStats {
+  id          String @id @default(cuid())
+  matchId     String @unique
+  match       Match  @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  homeCorners Int?
+  awayCorners Int?
+  homeYellow  Int?
+  awayYellow  Int?
+  homeRed     Int?
+  awayRed     Int?
+  homeShots   Int?
+  awayShots   Int?
+  homePoss    Int? // % kiểm soát bóng
+  awayPoss    Int?
+}

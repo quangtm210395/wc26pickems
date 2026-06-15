@@ -1,0 +1,313 @@
+/**
+ * prisma/seed.ts — Seed dữ liệu World Cup 2026
+ *
+ * Chạy: npm run db:seed  (hoặc: node_modules/.bin/prisma db seed)
+ * Idempotent: upsert theo externalId / code / name — chạy nhiều lần không tạo duplicate.
+ *
+ * Nội dung:
+ *   - 12 bảng A–L, mỗi bảng 4 đội = 48 đội
+ *   - 72 trận vòng bảng (round-robin mỗi bảng 6 trận, 3 lượt)
+ *   - Trận trước 2026-06-15: FINISHED + điểm số + MatchStats
+ *   - Trận từ 2026-06-15 trở đi: SCHEDULED + preview tiếng Việt
+ */
+
+import { PrismaClient, MatchStatus, Stage } from "@prisma/client";
+
+const prisma = new PrismaClient();
+
+// ─── Hằng số ───────────────────────────────────────────────────────────────
+
+const TODAY = new Date("2026-06-15T00:00:00Z");
+
+const VENUES = [
+  "MetLife Stadium, New York",
+  "SoFi Stadium, Los Angeles",
+  "Estadio Azteca, Mexico City",
+  "BC Place, Vancouver",
+  "AT&T Stadium, Dallas",
+  "Mercedes-Benz Stadium, Atlanta",
+];
+
+// ─── Dữ liệu các đội theo bảng ─────────────────────────────────────────────
+// 48 đội, mỗi đội có code FIFA duy nhất, phân bổ hợp lý theo châu lục.
+// Đây là dữ liệu demo — admin có thể chỉnh sau.
+
+interface TeamDef {
+  name: string;
+  code: string; // phải unique toàn bộ 48 đội
+  flag: string;
+}
+
+const GROUPS: Record<string, TeamDef[]> = {
+  // CONCACAF host group A — Brazil đầu bảng
+  A: [
+    { name: "Brazil", code: "BRA", flag: "🇧🇷" },
+    { name: "Croatia", code: "CRO", flag: "🇭🇷" },
+    { name: "Morocco", code: "MAR", flag: "🇲🇦" },
+    { name: "Canada", code: "CAN", flag: "🇨🇦" },
+  ],
+  B: [
+    { name: "France", code: "FRA", flag: "🇫🇷" },
+    { name: "Netherlands", code: "NED", flag: "🇳🇱" },
+    { name: "Senegal", code: "SEN", flag: "🇸🇳" },
+    { name: "Ecuador", code: "ECU", flag: "🇪🇨" },
+  ],
+  C: [
+    { name: "Argentina", code: "ARG", flag: "🇦🇷" },
+    { name: "Poland", code: "POL", flag: "🇵🇱" },
+    { name: "Mexico", code: "MEX", flag: "🇲🇽" },
+    { name: "Saudi Arabia", code: "KSA", flag: "🇸🇦" },
+  ],
+  D: [
+    { name: "England", code: "ENG", flag: "🏴󠁧󠁢󠁥󠁮󠁧󠁿" },
+    { name: "Portugal", code: "POR", flag: "🇵🇹" },
+    { name: "Ghana", code: "GHA", flag: "🇬🇭" },
+    { name: "Costa Rica", code: "CRC", flag: "🇨🇷" },
+  ],
+  E: [
+    { name: "Spain", code: "ESP", flag: "🇪🇸" },
+    { name: "Germany", code: "GER", flag: "🇩🇪" },
+    { name: "Japan", code: "JPN", flag: "🇯🇵" },
+    { name: "Ivory Coast", code: "CIV", flag: "🇨🇮" },
+  ],
+  F: [
+    { name: "Belgium", code: "BEL", flag: "🇧🇪" },
+    { name: "Uruguay", code: "URU", flag: "🇺🇾" },
+    { name: "South Korea", code: "KOR", flag: "🇰🇷" },
+    { name: "Tunisia", code: "TUN", flag: "🇹🇳" },
+  ],
+  G: [
+    { name: "USA", code: "USA", flag: "🇺🇸" },
+    { name: "Denmark", code: "DEN", flag: "🇩🇰" },
+    { name: "Cameroon", code: "CMR", flag: "🇨🇲" },
+    { name: "Honduras", code: "HON", flag: "🇭🇳" },
+  ],
+  H: [
+    { name: "Switzerland", code: "SUI", flag: "🇨🇭" },
+    { name: "Colombia", code: "COL", flag: "🇨🇴" },
+    { name: "Nigeria", code: "NGA", flag: "🇳🇬" },
+    { name: "Chile", code: "CHI", flag: "🇨🇱" },
+  ],
+  I: [
+    { name: "Italy", code: "ITA", flag: "🇮🇹" },
+    { name: "Ukraine", code: "UKR", flag: "🇺🇦" },
+    { name: "Egypt", code: "EGY", flag: "🇪🇬" },
+    { name: "Panama", code: "PAN", flag: "🇵🇦" },
+  ],
+  J: [
+    { name: "Iran", code: "IRN", flag: "🇮🇷" },
+    { name: "Australia", code: "AUS", flag: "🇦🇺" },
+    { name: "Serbia", code: "SRB", flag: "🇷🇸" },
+    { name: "Bolivia", code: "BOL", flag: "🇧🇴" },
+  ],
+  K: [
+    { name: "Qatar", code: "QAT", flag: "🇶🇦" },
+    { name: "Wales", code: "WAL", flag: "🏴󠁧󠁢󠁷󠁬󠁳󠁿" },
+    { name: "Algeria", code: "ALG", flag: "🇩🇿" },
+    { name: "Peru", code: "PER", flag: "🇵🇪" },
+  ],
+  L: [
+    { name: "Turkey", code: "TUR", flag: "🇹🇷" },
+    { name: "Austria", code: "AUT", flag: "🇦🇹" },
+    { name: "Mali", code: "MLI", flag: "🇲🇱" },
+    { name: "Cuba", code: "CUB", flag: "🇨🇺" },
+  ],
+};
+
+// ─── Lịch kickoff theo matchday ─────────────────────────────────────────────
+// Matchday 1: 2026-06-11 → 2026-06-14 (trước TODAY → FINISHED)
+// Matchday 2: 2026-06-15 → 2026-06-19 (bắt đầu TODAY → SCHEDULED)
+// Matchday 3: 2026-06-22 → 2026-06-27 (sau TODAY → SCHEDULED)
+//
+// 12 bảng × 2 trận/lượt = 24 trận/lượt trải trên 4 ngày × 3 slot/ngày = 12 slot
+// (nhóm 0-2 → ngày 1, nhóm 3-5 → ngày 2, nhóm 6-8 → ngày 3, nhóm 9-11 → ngày 4)
+
+function getKickoff(groupIndex: number, matchday: number): Date {
+  const mdBaseDay: Record<number, number> = { 1: 11, 2: 15, 3: 22 };
+  const dayOffset = Math.floor(groupIndex / 3); // 0..3
+  const slotInDay = groupIndex % 3; // 0..2
+  const hours = [14, 17, 20]; // UTC
+  const day = mdBaseDay[matchday] + dayOffset;
+  return new Date(
+    `2026-06-${String(day).padStart(2, "0")}T${String(hours[slotInDay]).padStart(2, "0")}:00:00Z`
+  );
+}
+
+// ─── Hash đơn giản (deterministic, không dùng Math.random) ─────────────────
+
+function simpleHash(s: string): number {
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) {
+    h = ((h << 5) + h + s.charCodeAt(i)) & 0xffffffff;
+  }
+  return Math.abs(h);
+}
+
+// ─── Điểm số deterministic ──────────────────────────────────────────────────
+
+function getScore(externalId: string): { homeScore: number; awayScore: number } {
+  return {
+    homeScore: simpleHash(externalId + "hs") % 4, // 0..3
+    awayScore: simpleHash(externalId + "as") % 4, // 0..3
+  };
+}
+
+// ─── MatchStats deterministic ────────────────────────────────────────────────
+
+function getStats(externalId: string) {
+  const h = (key: string) => simpleHash(externalId + key);
+  const homePoss = 35 + (h("poss") % 31); // 35..65
+  return {
+    homeCorners: 2 + (h("hc") % 8),   // 2..9
+    awayCorners: 2 + (h("ac") % 8),   // 2..9
+    homeYellow:  h("hy") % 5,          // 0..4
+    awayYellow:  h("ay") % 5,          // 0..4
+    homeRed:     h("hr") % 2,          // 0..1
+    awayRed:     h("ar") % 2,          // 0..1
+    homeShots:   5 + (h("hs2") % 14), // 5..18
+    awayShots:   5 + (h("as2") % 14), // 5..18
+    homePoss,
+    awayPoss: 100 - homePoss,
+  };
+}
+
+// ─── Round-robin: 3 lượt, 6 trận cho 4 đội ──────────────────────────────────
+// Đội index 0..3 trong mỗi bảng
+// Lượt 1 (matchday 1): [0v1, 2v3]
+// Lượt 2 (matchday 2): [0v2, 1v3]
+// Lượt 3 (matchday 3): [0v3, 1v2]
+
+const ROUND_ROBIN: { home: number; away: number; matchday: number }[] = [
+  { home: 0, away: 1, matchday: 1 },
+  { home: 2, away: 3, matchday: 1 },
+  { home: 0, away: 2, matchday: 2 },
+  { home: 1, away: 3, matchday: 2 },
+  { home: 0, away: 3, matchday: 3 },
+  { home: 1, away: 2, matchday: 3 },
+];
+
+// ─── Preview tiếng Việt cho trận SCHEDULED ──────────────────────────────────
+
+const PREVIEWS = [
+  "Trận đấu hứa hẹn kịch tính, cả hai đội đều muốn giành trọn 3 điểm.",
+  "Cuộc đối đầu không thể bỏ qua giữa hai đội có phong cách chơi trái ngược.",
+  "Đây là trận cầu sống còn, kẻ thua có nguy cơ bị loại sớm.",
+  "Hai đội cần điểm để tiến vào vòng knock-out.",
+  "Ngôi sao nào sẽ tỏa sáng trong trận đấu nhiều kỳ vọng này?",
+  "Phân tích chiến thuật: ai sẽ kiểm soát thế trận tốt hơn?",
+  "Cuộc chiến giữa lối đá tấn công và hàng thủ vững chắc.",
+  "Đội đầu bảng quyết tâm khẳng định vị thế trước đối thủ khó chơi.",
+  "Một trong những trận hay nhất lượt này theo dự đoán của các chuyên gia.",
+  "Trận đấu mà bất cứ kết quả nào cũng đều bất ngờ.",
+];
+
+function getPreview(externalId: string): string {
+  return PREVIEWS[simpleHash(externalId + "prev") % PREVIEWS.length];
+}
+
+// ─── Main ────────────────────────────────────────────────────────────────────
+
+async function main() {
+  console.log("🌱 Bắt đầu seed World Cup 2026...");
+
+  const groupLetters = Object.keys(GROUPS); // A..L, 12 bảng
+
+  // 1. Upsert Groups
+  console.log(`  → Upsert ${groupLetters.length} bảng...`);
+  const groupIdMap: Record<string, string> = {};
+  for (const letter of groupLetters) {
+    const g = await prisma.group.upsert({
+      where:  { name: letter },
+      update: {},
+      create: { name: letter },
+    });
+    groupIdMap[letter] = g.id;
+  }
+
+  // 2. Upsert Teams
+  const totalTeams = groupLetters.reduce((s, l) => s + GROUPS[l].length, 0);
+  console.log(`  → Upsert ${totalTeams} đội...`);
+  const teamIdMap: Record<string, string> = {}; // code → id
+  for (const [letter, teams] of Object.entries(GROUPS)) {
+    for (const t of teams) {
+      const team = await prisma.team.upsert({
+        where:  { code: t.code },
+        update: { name: t.name, flag: t.flag, groupId: groupIdMap[letter] },
+        create: { name: t.name, code: t.code, flag: t.flag, groupId: groupIdMap[letter] },
+      });
+      teamIdMap[t.code] = team.id;
+    }
+  }
+
+  // 3. Upsert Matches + MatchStats
+  console.log(`  → Upsert 72 trận vòng bảng...`);
+  let totalMatches = 0;
+  let finished = 0;
+
+  for (let gi = 0; gi < groupLetters.length; gi++) {
+    const letter = groupLetters[gi];
+    const teams  = GROUPS[letter];
+
+    for (const { home: hi, away: ai, matchday } of ROUND_ROBIN) {
+      const homeTeam = teams[hi];
+      const awayTeam = teams[ai];
+      const kickoff  = getKickoff(gi, matchday);
+      const isFinished = kickoff < TODAY;
+
+      const externalId = `seed-${letter}-md${matchday}-${homeTeam.code}-${awayTeam.code}`;
+      const venueIdx   = simpleHash(externalId + "venue") % VENUES.length;
+
+      // Dữ liệu trận
+      const matchPayload: Parameters<typeof prisma.match.create>[0]["data"] = {
+        stage:      Stage.GROUP,
+        groupName:  letter,
+        matchday,
+        kickoff,
+        status:     isFinished ? MatchStatus.FINISHED : MatchStatus.SCHEDULED,
+        homeTeamId: teamIdMap[homeTeam.code],
+        awayTeamId: teamIdMap[awayTeam.code],
+        venue:      VENUES[venueIdx],
+      };
+
+      if (isFinished) {
+        const { homeScore, awayScore } = getScore(externalId);
+        matchPayload.homeScore = homeScore;
+        matchPayload.awayScore = awayScore;
+      } else {
+        matchPayload.preview = getPreview(externalId);
+      }
+
+      const match = await prisma.match.upsert({
+        where:  { externalId },
+        update: matchPayload,
+        create: { ...matchPayload, externalId },
+      });
+
+      // Tạo stats cho trận đã đấu
+      if (isFinished) {
+        await prisma.matchStats.upsert({
+          where:  { matchId: match.id },
+          update: getStats(externalId),
+          create: { matchId: match.id, ...getStats(externalId) },
+        });
+        finished++;
+      }
+
+      totalMatches++;
+    }
+  }
+
+  console.log(`\n✅ Seed hoàn tất!`);
+  console.log(`   Bảng:           ${groupLetters.length}`);
+  console.log(`   Đội:            ${Object.keys(teamIdMap).length}`);
+  console.log(`   Trận:           ${totalMatches}`);
+  console.log(`   Đã đấu (FINISHED):  ${finished}`);
+  console.log(`   Chưa đấu (SCHEDULED): ${totalMatches - finished}`);
+}
+
+main()
+  .catch((e) => {
+    console.error("❌ Seed thất bại:", e);
+    process.exit(1);
+  })
+  .finally(() => prisma.$disconnect());
