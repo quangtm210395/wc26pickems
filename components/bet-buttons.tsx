@@ -64,16 +64,16 @@ export function BetButtons({ marketId, selections }: BetButtonsProps) {
               key={sel.key}
               onClick={() => handleSelectKey(sel.key)}
               disabled={isPending}
-              className={`flex min-h-[44px] flex-1 flex-col items-center justify-center rounded-lg border px-2 py-1.5 text-xs font-medium transition-colors disabled:opacity-60 ${
+              className={`flex min-h-[44px] flex-1 flex-col items-center justify-center rounded-xl border px-2 py-1.5 text-xs font-medium transition-colors disabled:opacity-60 ${
                 isActive
-                  ? "border-primary bg-primary text-primary-foreground"
-                  : "border-border bg-background text-foreground hover:bg-accent"
+                  ? "border-primary bg-primary text-primary-foreground shadow-[0_2px_14px_-6px_rgba(231,180,58,0.8)]"
+                  : "border-border bg-secondary/40 text-foreground hover:border-primary/40 hover:bg-primary/5"
               }`}
             >
               <span className="leading-tight">{sel.label}</span>
               <span
-                className={`text-[11px] font-semibold tabular-nums ${
-                  isActive ? "text-primary-foreground/80" : "text-muted-foreground"
+                className={`font-display text-[11px] font-semibold tabular-nums ${
+                  isActive ? "text-primary-foreground/80" : "text-primary/90"
                 }`}
               >
                 {sel.odds.toFixed(2)}
@@ -92,7 +92,7 @@ export function BetButtons({ marketId, selections }: BetButtonsProps) {
               key={preset}
               onClick={() => handleStake(preset)}
               disabled={isPending}
-              className="min-h-[36px] flex-1 rounded-lg border border-border bg-accent px-2 py-1 text-xs font-semibold text-foreground transition-colors hover:bg-accent/70 disabled:opacity-60"
+              className="min-h-[36px] flex-1 rounded-lg border border-primary/30 bg-primary/10 px-2 py-1 font-display text-xs font-semibold tabular-nums text-primary transition-colors hover:bg-primary/15 disabled:opacity-60"
             >
               {preset.toLocaleString("vi-VN")}đ
             </button>
@@ -102,7 +102,7 @@ export function BetButtons({ marketId, selections }: BetButtonsProps) {
               setSelectedKey(null);
               setError(null);
             }}
-            className="min-h-[36px] rounded-lg border border-border px-2 py-1 text-[10px] text-muted-foreground hover:bg-accent"
+            className="min-h-[36px] rounded-lg border border-border px-2 py-1 text-[10px] text-muted-foreground hover:bg-secondary/60"
           >
             Hủy
           </button>
@@ -116,12 +116,12 @@ export function BetButtons({ marketId, selections }: BetButtonsProps) {
 
       {/* Error / Success messages */}
       {error && (
-        <p className="rounded bg-red-50 px-2 py-1 text-[11px] text-red-600 dark:bg-red-900/20 dark:text-red-400">
+        <p className="rounded-md border border-destructive/30 bg-destructive/10 px-2 py-1 text-[11px] text-destructive">
           {error}
         </p>
       )}
       {success && (
-        <p className="rounded bg-green-50 px-2 py-1 text-[11px] text-green-700 dark:bg-green-900/20 dark:text-green-400">
+        <p className="rounded-md border border-accent/40 bg-accent/20 px-2 py-1 text-[11px] text-emerald-300">
           {success}
         </p>
       )}

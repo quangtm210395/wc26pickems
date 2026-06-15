@@ -41,13 +41,13 @@ export default async function ViPage() {
         <Card className="w-full max-w-sm">
           <CardContent className="flex flex-col items-center gap-4 py-8 text-center">
             <span className="text-4xl">💰</span>
-            <h1 className="text-lg font-semibold">Ví điểm của bạn</h1>
+            <h1 className="font-display text-lg font-bold uppercase tracking-tight">Ví điểm của bạn</h1>
             <p className="text-sm text-muted-foreground">
               Đăng nhập để xem ví và nhận điểm hằng ngày.
             </p>
             <Link
               href="/login"
-              className="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-primary px-6 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/80"
+              className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-primary px-6 py-2 font-display text-sm font-semibold uppercase tracking-wide text-primary-foreground shadow-[0_2px_16px_-6px_rgba(231,180,58,0.7)] transition-colors hover:bg-primary/90"
             >
               Đăng nhập
             </Link>
@@ -74,14 +74,15 @@ export default async function ViPage() {
   return (
     <div className="space-y-4">
       {/* Balance card */}
-      <Card>
-        <CardContent className="py-6 text-center">
-          <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Số dư</p>
-          <p className="text-4xl font-bold tabular-nums">
+      <Card className="relative overflow-hidden ring-primary/20">
+        <div className="pointer-events-none absolute inset-x-0 -top-16 h-32 bg-[radial-gradient(ellipse_60%_100%_at_50%_0%,rgba(231,180,58,0.16),transparent_70%)]" />
+        <CardContent className="relative py-6 text-center">
+          <p className="mb-1 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Số dư</p>
+          <p className="font-display text-5xl font-bold leading-none tabular-nums text-primary">
             {fmt(balance)}
-            <span className="text-2xl font-semibold">đ</span>
+            <span className="text-3xl font-semibold">đ</span>
           </p>
-          <p className="mt-1 text-xs text-muted-foreground">điểm ảo, chơi cho vui</p>
+          <p className="mt-2 text-xs text-muted-foreground">điểm ảo, chơi cho vui</p>
         </CardContent>
       </Card>
 
@@ -116,16 +117,14 @@ export default async function ViPage() {
                     {/* Right: amount + balanceAfter */}
                     <div className="text-right shrink-0">
                       <p
-                        className={`text-sm font-semibold tabular-nums ${
-                          isPositive
-                            ? "text-green-600 dark:text-green-400"
-                            : "text-red-500 dark:text-red-400"
+                        className={`font-display text-sm font-semibold tabular-nums ${
+                          isPositive ? "text-emerald-400" : "text-destructive"
                         }`}
                       >
                         {isPositive ? "+" : ""}
                         {fmt(tx.amount)}đ
                       </p>
-                      <p className="text-[10px] text-muted-foreground tabular-nums">
+                      <p className="font-display text-[10px] text-muted-foreground tabular-nums">
                         {fmt(tx.balanceAfter)}đ
                       </p>
                     </div>

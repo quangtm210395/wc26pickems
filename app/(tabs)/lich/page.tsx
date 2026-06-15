@@ -22,15 +22,15 @@ const CHIPS: { view: string; label: string }[] = [
 function ChipNav({ active }: { active: string }) {
   return (
     <div className="overflow-x-auto whitespace-nowrap [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-      <div className="inline-flex gap-1 rounded-md border p-0.5 text-xs">
+      <div className="inline-flex gap-1 rounded-xl border border-border bg-card p-0.5 text-xs">
         {CHIPS.map(({ view, label }) => (
           <Link
             key={view}
             href={`/lich?view=${view}`}
-            className={`inline-block min-h-[44px] min-w-[44px] content-center rounded px-3 py-1.5 text-center transition-colors ${
+            className={`inline-block min-h-[44px] min-w-[44px] content-center rounded-lg px-3 py-1.5 text-center font-display font-medium uppercase tracking-wide transition-colors ${
               active === view
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:bg-accent"
+                ? "bg-primary text-primary-foreground shadow-[0_2px_12px_-4px_rgba(231,180,58,0.7)]"
+                : "text-muted-foreground hover:bg-primary/5 hover:text-foreground"
             }`}
           >
             {label}
@@ -52,7 +52,8 @@ function SectionList({
     <>
       {sections.map((s) => (
         <section key={s.id} className="space-y-2">
-          <h2 className="sticky top-14 z-10 bg-background/95 py-1 text-sm font-semibold text-muted-foreground backdrop-blur">
+          <h2 className="sticky top-14 z-10 flex items-center gap-2 bg-background/90 py-1.5 font-display text-sm font-semibold uppercase tracking-wide text-foreground/80 backdrop-blur">
+            <span className="h-3.5 w-0.5 rounded-full bg-primary" />
             {s.title}
           </h2>
           <div className="space-y-2">
@@ -97,7 +98,8 @@ function CalendarView({
     <div className="space-y-6">
       {months.map((month) => (
         <div key={month.monthLabel} className="space-y-2">
-          <h3 className="sticky top-14 z-10 bg-background/95 py-1 text-sm font-semibold capitalize text-muted-foreground backdrop-blur">
+          <h3 className="sticky top-14 z-10 flex items-center gap-2 bg-background/90 py-1.5 font-display text-sm font-semibold uppercase capitalize tracking-wide text-foreground/80 backdrop-blur">
+            <span className="h-3.5 w-0.5 rounded-full bg-primary" />
             {month.monthLabel}
           </h3>
           <div className="grid grid-cols-4 gap-1.5">
@@ -105,10 +107,10 @@ function CalendarView({
               <Link
                 key={key}
                 href={`/lich?view=day`}
-                className="flex min-h-[56px] flex-col items-center justify-center rounded-lg border bg-card p-2 text-center transition-colors active:bg-accent"
+                className="flex min-h-[56px] flex-col items-center justify-center rounded-xl border border-border bg-card p-2 text-center transition-colors hover:border-primary/40 active:bg-primary/5"
               >
-                <span className="text-base font-bold tabular-nums">{day}</span>
-                <span className="mt-0.5 flex items-center justify-center rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold leading-none text-primary-foreground">
+                <span className="font-display text-lg font-bold leading-none tabular-nums">{day}</span>
+                <span className="mt-1 flex items-center justify-center rounded-full bg-primary px-1.5 py-0.5 font-display text-[10px] font-semibold leading-none text-primary-foreground">
                   {count}
                 </span>
               </Link>
@@ -134,8 +136,11 @@ export default async function LichPage({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-start justify-between gap-2">
-        <h1 className="shrink-0 text-lg font-semibold">Lịch thi đấu</h1>
+      <div className="flex items-center justify-between gap-2">
+        <h1 className="flex shrink-0 items-center gap-2 text-xl font-bold uppercase tracking-tight">
+          <span className="h-5 w-1 rounded-full bg-primary shadow-[0_0_8px_0_rgba(231,180,58,0.6)]" />
+          Lịch
+        </h1>
         <ChipNav active={mode} />
       </div>
 

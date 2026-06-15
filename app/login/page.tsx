@@ -8,46 +8,56 @@ export default async function LoginPage() {
   const googleEnabled = Boolean(process.env.AUTH_GOOGLE_ID);
 
   return (
-    <div className="space-y-6 pt-8">
+    <div className="space-y-6 pt-10">
       <div className="text-center">
-        <h1 className="text-xl font-bold">Đăng nhập</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Vào chơi Đường Đến Ngai Vàng World Cup 2026
+        <div className="mx-auto mb-3 flex size-16 items-center justify-center rounded-full border border-primary/30 bg-primary/10 text-3xl shadow-[0_0_28px_-6px_rgba(231,180,58,0.6)]">
+          👑
+        </div>
+        <h1 className="font-display text-2xl font-bold uppercase tracking-tight text-primary">
+          Đường Đến Ngai Vàng
+        </h1>
+        <p className="mt-0.5 font-display text-xs font-medium uppercase tracking-[0.22em] text-muted-foreground">
+          World Cup 2026
+        </p>
+        <p className="mt-3 text-sm text-muted-foreground">
+          Dự đoán &amp; soi kèo cùng anh em — leo lên ngôi vương.
         </p>
       </div>
 
-      {googleEnabled && (
+      <div className="space-y-4 rounded-2xl border border-border bg-card p-5 shadow-[0_1px_0_0_rgba(231,180,58,0.08)_inset]">
+        {googleEnabled && (
+          <form
+            action={async () => {
+              "use server";
+              await signIn("google", { redirectTo: "/lich" });
+            }}
+          >
+            <Button className="h-11 w-full" type="submit">
+              Tiếp tục với Google
+            </Button>
+          </form>
+        )}
+
         <form
-          action={async () => {
+          action={async (formData: FormData) => {
             "use server";
-            await signIn("google", { redirectTo: "/lich" });
+            await signIn("resend", formData);
           }}
+          className="space-y-3"
         >
-          <Button className="w-full" type="submit">
-            Tiếp tục với Google
+          <input type="hidden" name="redirectTo" value="/lich" />
+          <input
+            name="email"
+            type="email"
+            required
+            placeholder="email@cua-ban.com"
+            className="h-11 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none transition-colors focus:border-primary/50 focus:ring-2 focus:ring-ring/40"
+          />
+          <Button variant="secondary" className="h-11 w-full" type="submit">
+            Gửi link đăng nhập qua email
           </Button>
         </form>
-      )}
-
-      <form
-        action={async (formData: FormData) => {
-          "use server";
-          await signIn("resend", formData);
-        }}
-        className="space-y-3"
-      >
-        <input type="hidden" name="redirectTo" value="/lich" />
-        <input
-          name="email"
-          type="email"
-          required
-          placeholder="email@cua-ban.com"
-          className="h-11 w-full rounded-md border bg-transparent px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
-        />
-        <Button variant="secondary" className="w-full" type="submit">
-          Gửi link đăng nhập qua email
-        </Button>
-      </form>
+      </div>
 
       <p className="text-center text-xs text-muted-foreground">
         Điểm ảo, chơi cho vui — không tiền thật.

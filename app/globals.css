@@ -7,9 +7,10 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
+  --font-sans: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-display), var(--font-sans), ui-sans-serif, sans-serif;
+  --font-mono: var(--font-mono), ui-monospace, monospace;
+  --font-heading: var(--font-display), var(--font-sans), ui-sans-serif, sans-serif;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -48,83 +49,127 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-:root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+/*
+ * ROYAL DARK + GOLD — "Đường Đến Ngai Vàng World Cup 2026".
+ * Dark is the only theme: :root and .dark carry identical dark values so there
+ * is no light flash on first paint. Gold (#E7B43A) is the star accent; deep
+ * emerald (#14543B) is the secondary accent for positive/won states.
+ */
+:root,
+.dark {
+  --background: #0c0a09; /* warm near-black */
+  --foreground: #faf6ef; /* warm off-white */
+  --card: #16130f;
+  --card-foreground: #faf6ef;
+  --popover: #16130f;
+  --popover-foreground: #faf6ef;
+  --primary: #e7b43a; /* GOLD */
+  --primary-foreground: #1a1206; /* dark brown on gold */
+  --secondary: #1f1a12;
+  --secondary-foreground: #faf6ef;
+  --muted: #1f1b15;
+  --muted-foreground: #a89f90;
+  --accent: #14543b; /* deep emerald */
+  --accent-foreground: #faf6ef;
+  --destructive: #c2410c;
+  --border: #2a241b;
+  --input: #2a241b;
+  --ring: #e7b43a;
+
+  /* Gold-leaning chart ramp (kept for any shadcn charts). */
+  --chart-1: #e7b43a;
+  --chart-2: #c79a2e;
+  --chart-3: #14543b;
+  --chart-4: #a89f90;
+  --chart-5: #6b5d3e;
+
+  --radius: 0.75rem;
+
+  --sidebar: #16130f;
+  --sidebar-foreground: #faf6ef;
+  --sidebar-primary: #e7b43a;
+  --sidebar-primary-foreground: #1a1206;
+  --sidebar-accent: #1f1a12;
+  --sidebar-accent-foreground: #faf6ef;
+  --sidebar-border: #2a241b;
+  --sidebar-ring: #e7b43a;
 }
 
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+/* `font-display` utility → Oswald (condensed, sporty) for titles & big numbers. */
+@utility font-display {
+  font-family: var(--font-display);
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
-  body {
-    @apply bg-background text-foreground;
-  }
   html {
     @apply font-sans;
+  }
+  body {
+    @apply bg-background text-foreground;
+    /* Warm near-black base with a faint gold glow pooling at the top. */
+    background-image: radial-gradient(
+      ellipse 90% 55% at 50% -10%,
+      rgba(231, 180, 58, 0.08),
+      transparent 60%
+    );
+    background-attachment: fixed;
+  }
+  /* Condensed display font for the big headings & numbers throughout. */
+  h1,
+  h2 {
+    font-family: var(--font-display);
+  }
+}
+
+/*
+ * Reusable heading treatments (gold marker + display font) so section/page
+ * titles stay consistent across tabs. Pure presentation — no behaviour.
+ */
+@utility page-heading {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.25rem; /* text-xl */
+  line-height: 1.75rem;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+@utility page-heading {
+  &::before {
+    content: "";
+    display: block;
+    width: 0.25rem;
+    height: 1.25rem;
+    border-radius: 9999px;
+    background: var(--primary);
+    box-shadow: 0 0 8px 0 rgba(231, 180, 58, 0.6);
+  }
+}
+
+@utility section-heading {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.875rem; /* text-sm */
+  line-height: 1.25rem;
+  letter-spacing: 0.025em;
+  text-transform: uppercase;
+  color: color-mix(in oklab, var(--foreground) 80%, transparent);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+@utility section-heading {
+  &::before {
+    content: "";
+    display: block;
+    width: 0.125rem;
+    height: 0.875rem;
+    border-radius: 9999px;
+    background: var(--primary);
   }
 }

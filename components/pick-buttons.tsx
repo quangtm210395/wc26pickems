@@ -45,10 +45,10 @@ export function PickButtons({ matchId, stage, current, homeLabel, awayLabel }: P
             key={value}
             onClick={() => handlePick(value)}
             disabled={isPending}
-            className={`flex min-h-[44px] flex-1 items-center justify-center rounded-lg border px-2 py-2 text-xs font-medium transition-colors disabled:opacity-60 ${
+            className={`flex min-h-[44px] flex-1 items-center justify-center rounded-xl border px-2 py-2 text-xs font-medium transition-colors disabled:opacity-60 ${
               isSelected
-                ? "bg-primary text-primary-foreground border-primary"
-                : "border-border bg-background text-foreground hover:bg-accent"
+                ? "border-primary bg-primary text-primary-foreground shadow-[0_2px_14px_-6px_rgba(231,180,58,0.8)]"
+                : "border-border bg-secondary/40 text-foreground hover:border-primary/40 hover:bg-primary/5"
             }`}
           >
             {isPending && isSelected ? (

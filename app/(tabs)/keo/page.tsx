@@ -33,14 +33,14 @@ function BetStatusBadge({
 }) {
   if (status === "WON") {
     return (
-      <span className="rounded bg-green-100 px-1.5 py-0.5 text-[10px] font-semibold text-green-700 dark:bg-green-900/30 dark:text-green-400">
+      <span className="rounded-md border border-accent/40 bg-accent/20 px-2 py-0.5 font-display text-[10px] font-semibold tabular-nums text-emerald-300">
         +{(payout ?? 0).toLocaleString("vi-VN")}đ
       </span>
     );
   }
   if (status === "LOST") {
     return (
-      <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
+      <span className="rounded-md bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">
         Thua
       </span>
     );
@@ -48,7 +48,7 @@ function BetStatusBadge({
   // PENDING
   const potentialWin = oddsAtBet != null ? Math.round(stake * oddsAtBet) : null;
   return (
-    <span className="rounded bg-blue-100 px-1.5 py-0.5 text-[10px] text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+    <span className="rounded-md border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] text-primary">
       Đang chờ
       {potentialWin != null && (
         <> · thắng {potentialWin.toLocaleString("vi-VN")}đ</>
@@ -69,13 +69,13 @@ export default async function KeoPage() {
         <Card className="w-full max-w-sm">
           <CardContent className="flex flex-col items-center gap-4 py-8 text-center">
             <span className="text-4xl">🎲</span>
-            <h1 className="text-lg font-semibold">Kèo cá cược</h1>
+            <h1 className="font-display text-lg font-bold uppercase tracking-tight">Kèo cá cược</h1>
             <p className="text-sm text-muted-foreground">
               Đăng nhập để chơi kèo &amp; đặt cược điểm ảo.
             </p>
             <Link
               href="/login"
-              className="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-primary px-6 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/80"
+              className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-primary px-6 py-2 font-display text-sm font-semibold uppercase tracking-wide text-primary-foreground shadow-[0_2px_16px_-6px_rgba(231,180,58,0.7)] transition-colors hover:bg-primary/90"
             >
               Đăng nhập
             </Link>
@@ -148,12 +148,12 @@ export default async function KeoPage() {
   return (
     <div className="space-y-4">
       {/* Header card: balance */}
-      <Card>
+      <Card className="ring-primary/15">
         <CardContent className="py-3">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs text-muted-foreground">Số dư</p>
-              <p className="text-xl font-bold tabular-nums">{formatBalance(balance)}</p>
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Số dư</p>
+              <p className="font-display text-2xl font-bold tabular-nums text-primary">{formatBalance(balance)}</p>
             </div>
             <p className="text-xs text-muted-foreground">điểm ảo, chơi vui</p>
           </div>
@@ -163,7 +163,7 @@ export default async function KeoPage() {
       {/* Section: My bets */}
       {userBets.length > 0 && (
         <section className="space-y-2">
-          <h2 className="sticky top-14 z-10 bg-background/95 py-1 text-sm font-semibold text-muted-foreground backdrop-blur">
+          <h2 className="section-heading sticky top-14 z-10 bg-background/90 py-1.5 backdrop-blur">
             Kèo của tôi
           </h2>
           <div className="space-y-2">
@@ -173,7 +173,7 @@ export default async function KeoPage() {
               const homeTeam = match.homeTeam;
               const awayTeam = match.awayTeam;
               return (
-                <div key={bet.id} className="rounded-lg border bg-card p-3 space-y-1.5">
+                <div key={bet.id} className="rounded-xl border border-border bg-card p-3 space-y-1.5">
                   {/* Match teams */}
                   <div className="flex items-center gap-1 text-sm font-medium">
                     <span>{homeTeam?.flag ?? "🏳️"}</span>
@@ -208,7 +208,7 @@ export default async function KeoPage() {
 
       {/* Section: Open markets */}
       <section className="space-y-2">
-        <h2 className="sticky top-14 z-10 bg-background/95 py-1 text-sm font-semibold text-muted-foreground backdrop-blur">
+        <h2 className="section-heading sticky top-14 z-10 bg-background/90 py-1.5 backdrop-blur">
           Kèo đang mở
         </h2>
 
@@ -217,11 +217,11 @@ export default async function KeoPage() {
         ) : (
           dayGroups.map((day) => (
             <section key={day.key} className="space-y-2">
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              <h3 className="font-display text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 {day.label}
               </h3>
               {day.matches.map((match) => (
-                <div key={match.id} className="rounded-lg border bg-card p-3 space-y-3">
+                <div key={match.id} className="rounded-xl border border-border bg-card p-3 space-y-3">
                   {/* Match header */}
                   <div className="flex items-center gap-2">
                     <div className="flex flex-1 items-center gap-1.5 overflow-hidden">
@@ -231,10 +231,10 @@ export default async function KeoPage() {
                       </span>
                     </div>
                     <div className="flex min-w-[60px] flex-col items-center text-center">
-                      <span className="text-sm font-semibold tabular-nums">
+                      <span className="font-display text-base font-semibold leading-none tabular-nums">
                         {vnTime(match.kickoff)}
                       </span>
-                      <span className="text-[10px] text-muted-foreground">
+                      <span className="mt-1 text-[10px] uppercase tracking-wide text-muted-foreground">
                         {match.groupName ? `Bảng ${match.groupName}` : match.stage}
                       </span>
                     </div>

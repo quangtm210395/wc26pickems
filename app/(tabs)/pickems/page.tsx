@@ -30,21 +30,21 @@ function PickBadge({ pick, points }: { pick: Pick | undefined; points?: number }
   const choiceLabel: Record<PickChoice, string> = { HOME: "Nhà", DRAW: "Hòa", AWAY: "Khách" };
   if (pick.status === "WON") {
     return (
-      <span className="flex items-center gap-1 rounded bg-green-100 px-1.5 py-0.5 text-[10px] font-semibold text-green-700 dark:bg-green-900/30 dark:text-green-400">
+      <span className="flex items-center gap-1 rounded-md border border-accent/40 bg-accent/20 px-2 py-0.5 text-[10px] font-semibold text-emerald-300">
         {choiceLabel[pick.choice]} · WON +{points ?? pick.points}đ
       </span>
     );
   }
   if (pick.status === "LOST") {
     return (
-      <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
+      <span className="rounded-md bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">
         {choiceLabel[pick.choice]} · Thua
       </span>
     );
   }
   // PENDING
   return (
-    <span className="rounded bg-blue-100 px-1.5 py-0.5 text-[10px] text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+    <span className="rounded-md border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] text-primary">
       {choiceLabel[pick.choice]} · Đang chờ
     </span>
   );
@@ -64,7 +64,7 @@ function MatchPickRow({
   const live = match.status === "LIVE";
 
   return (
-    <div className="rounded-lg border bg-card p-3">
+    <div className="rounded-xl border border-border bg-card p-3">
       {/* Teams row */}
       <div className="flex items-center gap-2">
         {/* Home */}
@@ -75,19 +75,19 @@ function MatchPickRow({
         {/* Center */}
         <div className="flex min-w-[60px] flex-col items-center">
           {done || live ? (
-            <span className="text-base font-bold tabular-nums">
-              {match.homeScore}-{match.awayScore}
+            <span className="font-display text-lg font-bold leading-none tabular-nums">
+              {match.homeScore}
+              <span className="mx-0.5 text-muted-foreground">-</span>
+              {match.awayScore}
             </span>
           ) : (
-            <span className="text-sm font-semibold tabular-nums">{vnTime(match.kickoff)}</span>
+            <span className="font-display text-base font-semibold leading-none tabular-nums">
+              {vnTime(match.kickoff)}
+            </span>
           )}
           <span
-            className={`text-[10px] uppercase ${
-              live
-                ? "font-semibold text-red-500"
-                : done
-                ? "text-muted-foreground"
-                : "text-muted-foreground"
+            className={`mt-1 text-[10px] uppercase tracking-wide ${
+              live ? "font-semibold text-destructive" : "text-muted-foreground"
             }`}
           >
             {live ? "● Live" : done ? "FT" : match.groupName ? `Bảng ${match.groupName}` : match.stage}
@@ -130,13 +130,13 @@ export default async function PickemsPage() {
         <Card className="w-full max-w-sm">
           <CardContent className="flex flex-col items-center gap-4 py-8 text-center">
             <span className="text-4xl">🏆</span>
-            <h1 className="text-lg font-semibold">Dự đoán World Cup 2026</h1>
+            <h1 className="font-display text-lg font-bold uppercase tracking-tight">Dự đoán World Cup 2026</h1>
             <p className="text-sm text-muted-foreground">
               Đăng nhập để dự đoán kết quả trận đấu &amp; leo bảng xếp hạng.
             </p>
             <Link
               href="/login"
-              className="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-primary px-6 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/80"
+              className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-primary px-6 py-2 font-display text-sm font-semibold uppercase tracking-wide text-primary-foreground shadow-[0_2px_16px_-6px_rgba(231,180,58,0.7)] transition-colors hover:bg-primary/90"
             >
               Đăng nhập
             </Link>
@@ -166,12 +166,12 @@ export default async function PickemsPage() {
   return (
     <div className="space-y-4">
       {/* Header card */}
-      <Card>
+      <Card className="ring-primary/15">
         <CardContent className="py-3">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs text-muted-foreground">Số dư</p>
-              <p className="text-xl font-bold tabular-nums">{formatBalance(balance)}</p>
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Số dư</p>
+              <p className="font-display text-2xl font-bold tabular-nums text-primary">{formatBalance(balance)}</p>
             </div>
             <div className="text-right text-xs text-muted-foreground">
               <p>Đã dự đoán: {totalPicked} trận</p>
@@ -187,7 +187,7 @@ export default async function PickemsPage() {
       ) : (
         days.map((day) => (
           <section key={day.key} className="space-y-2">
-            <h2 className="sticky top-14 z-10 bg-background/95 py-1 text-sm font-semibold text-muted-foreground backdrop-blur">
+            <h2 className="section-heading sticky top-14 z-10 bg-background/90 py-1.5 backdrop-blur">
               {day.label}
             </h2>
             <div className="space-y-2">

@@ -8,10 +8,10 @@ import type { Post } from "@prisma/client";
 // ─── Badge colors per type ────────────────────────────────────────────────────
 
 const TYPE_COLOR: Record<Post["type"], string> = {
-  PREVIEW: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
-  RECAP: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300",
-  ANALYSIS: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
-  TIP: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300",
+  PREVIEW: "border border-sky-400/30 bg-sky-400/10 text-sky-300",
+  RECAP: "border border-violet-400/30 bg-violet-400/10 text-violet-300",
+  ANALYSIS: "border border-primary/30 bg-primary/10 text-primary",
+  TIP: "border border-accent/40 bg-accent/20 text-emerald-300",
 };
 
 // ─── Type pill ────────────────────────────────────────────────────────────────
@@ -34,7 +34,7 @@ function PostCard({ post }: { post: Post }) {
   const snippet = snippetFromMarkdown(post.body);
 
   return (
-    <div className="rounded-lg border bg-card p-3 space-y-2">
+    <div className="rounded-xl border border-border bg-card p-3 space-y-2 transition-colors hover:border-primary/30">
       <div className="flex items-center gap-2">
         <TypeBadge type={post.type} />
         <span className="text-[11px] text-muted-foreground">
@@ -44,7 +44,7 @@ function PostCard({ post }: { post: Post }) {
       </div>
       <Link
         href={`/tin/${post.slug}`}
-        className="block text-sm font-semibold leading-snug hover:underline active:opacity-70"
+        className="block font-display text-base font-semibold leading-snug hover:text-primary active:opacity-70"
       >
         {post.title}
       </Link>
@@ -59,7 +59,7 @@ function PostCard({ post }: { post: Post }) {
 
 function DraftRow({ post }: { post: Post }) {
   return (
-    <div className="flex items-center gap-3 rounded-lg border bg-muted/40 px-3 py-2">
+    <div className="flex items-center gap-3 rounded-xl border border-border bg-muted/40 px-3 py-2">
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5">
           <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
@@ -89,8 +89,11 @@ export default async function TinPage() {
     <div className="space-y-4">
       {/* Header */}
       <div>
-        <h1 className="text-lg font-semibold">Tin tức</h1>
-        <p className="mt-0.5 text-xs text-muted-foreground">
+        <h1 className="flex items-center gap-2 text-xl font-bold uppercase tracking-tight">
+          <span className="h-5 w-1 rounded-full bg-primary shadow-[0_0_8px_0_rgba(231,180,58,0.6)]" />
+          Tin tức
+        </h1>
+        <p className="mt-1 text-xs text-muted-foreground">
           AI lên bài hằng ngày · soi kèo · nhận định
         </p>
       </div>
@@ -98,7 +101,7 @@ export default async function TinPage() {
       {/* Admin: Chờ duyệt section */}
       {isAdmin && drafts.length > 0 && (
         <section className="space-y-2">
-          <h2 className="text-sm font-semibold text-muted-foreground">
+          <h2 className="section-heading">
             Chờ duyệt ({drafts.length})
           </h2>
           <div className="space-y-2">
@@ -111,7 +114,7 @@ export default async function TinPage() {
 
       {/* Published posts */}
       {published.length === 0 ? (
-        <div className="rounded-lg border bg-card p-6 text-center">
+        <div className="rounded-xl border border-border bg-card p-6 text-center">
           <p className="text-sm text-muted-foreground">
             Chưa có bài viết. AI sẽ lên bài khi giải diễn ra.
           </p>

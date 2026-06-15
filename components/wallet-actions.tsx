@@ -54,7 +54,7 @@ function ClaimButton({
       {msg && (
         <span
           className={`text-xs ${
-            msg.startsWith("✓") ? "text-green-600 dark:text-green-400" : "text-muted-foreground"
+            msg.startsWith("✓") ? "text-emerald-400" : "text-muted-foreground"
           }`}
         >
           {msg}
@@ -163,7 +163,7 @@ export function LoanCard({ activeLoanOutstanding }: LoanCardProps) {
         {msg && (
           <p
             className={`text-xs ${
-              msg.startsWith("✓") ? "text-green-600 dark:text-green-400" : "text-red-500"
+              msg.startsWith("✓") ? "text-emerald-400" : "text-destructive"
             }`}
           >
             {msg}
