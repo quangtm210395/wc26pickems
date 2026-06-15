@@ -23,6 +23,10 @@ model User {
   txns          WalletTransaction[]
   bets          Bet[]
   loans         Loan[]
+  referralCode  String?   @unique // link mời bạn bè
+  referredById  String? // ai đã mời user này
+  referredBy    User?     @relation("Referrals", fields: [referredById], references: [id])
+  referrals     User[]    @relation("Referrals")
 }
 
 model Account {
@@ -164,8 +168,10 @@ enum TxType {
   BET_WIN // thắng cược (cộng)
   LOAN // vay
   REPAY // trả nợ + lãi
-  SHARE // nạp qua share MXH
-  AD // nạp qua xem quảng cáo
+  SHARE // (cũ) nạp qua share MXH — đã thay bằng referral
+  AD // (tạm tắt) nạp qua xem quảng cáo
+  REFERRAL // thưởng khi mời được bạn mới
+  REFERRED // thưởng cho người mới đăng ký qua link
   ADJUST // admin chỉnh tay
 }
 

@@ -2,13 +2,7 @@
 import { useTransition, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  claimDripAction,
-  claimShareAction,
-  claimAdAction,
-  borrowAction,
-  repayAction,
-} from "@/app/vi/actions";
+import { claimDripAction, borrowAction, repayAction } from "@/app/vi/actions";
 import type { ClaimResult } from "@/lib/wallet";
 
 const fmt = (n: number) => new Intl.NumberFormat("vi-VN").format(n);
@@ -74,8 +68,6 @@ export function NapDiemCard() {
       </CardHeader>
       <CardContent className="flex flex-col gap-2 pb-4">
         <ClaimButton label="🎁 Nhận 200đ hôm nay" action={claimDripAction} />
-        <ClaimButton label="📣 Chia sẻ MXH +200đ" action={claimShareAction} />
-        <ClaimButton label="📺 Xem quảng cáo +100đ" action={claimAdAction} />
       </CardContent>
     </Card>
   );

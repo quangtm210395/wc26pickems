@@ -5,6 +5,8 @@ import { getBalance } from "@/lib/economy";
 import { getActiveLoan } from "@/lib/wallet";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { NapDiemCard, LoanCard } from "@/components/wallet-actions";
+import { ReferralCard } from "@/components/referral-card";
+import { getOrCreateReferralCode, getReferralCount } from "@/lib/referral";
 import type { TxType } from "@prisma/client";
 
 const fmt = (n: number) => new Intl.NumberFormat("vi-VN").format(n);
@@ -19,6 +21,8 @@ const TX_LABELS: Record<TxType, string> = {
   REPAY: "Trả nợ",
   SHARE: "Chia sẻ MXH",
   AD: "Quảng cáo",
+  REFERRAL: "Mời bạn",
+  REFERRED: "Thưởng giới thiệu",
   ADJUST: "Điều chỉnh",
 };
 
@@ -59,7 +63,7 @@ export default async function ViPage() {
 
   const userId = session.user.id;
 
-  const [balance, activeLoan, txns] = await Promise.all([
+  const [balance, activeLoan, txns, referralCode, referralCount] = await Promise.all([
     getBalance(userId),
     getActiveLoan(userId),
     prisma.walletTransaction.findMany({
@@ -67,6 +71,8 @@ export default async function ViPage() {
       orderBy: { createdAt: "desc" },
       take: 30,
     }),
+    getOrCreateReferralCode(userId),
+    getReferralCount(userId),
   ]);
 
   const activeLoanOutstanding = activeLoan ? activeLoan.outstanding : null;
@@ -88,6 +94,9 @@ export default async function ViPage() {
 
       {/* Claim actions */}
       <NapDiemCard />
+
+      {/* Referral */}
+      <ReferralCard code={referralCode} count={referralCount} />
 
       {/* Loan card */}
       <LoanCard activeLoanOutstanding={activeLoanOutstanding} />

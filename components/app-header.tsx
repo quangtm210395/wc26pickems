@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { auth, signOut } from "@/auth";
 import { getBalance } from "@/lib/economy";
+import { ReferralClaim } from "@/components/referral-claim";
 
 const fmt = (n: number) => new Intl.NumberFormat("vi-VN").format(n);
 
@@ -23,6 +24,7 @@ export async function AppHeader() {
       </Link>
       {session?.user ? (
         <div className="flex items-center gap-2">
+          <ReferralClaim />
           <Link
             href="/vi"
             className="rounded-full border border-primary/30 bg-primary/10 px-3 py-1 font-display text-xs font-semibold tabular-nums text-primary shadow-[0_0_12px_-4px_rgba(231,180,58,0.5)] transition-colors hover:bg-primary/15"
