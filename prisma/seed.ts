@@ -11,7 +11,7 @@
  *   - Trận từ 2026-06-15 trở đi: SCHEDULED + preview tiếng Việt
  */
 
-import { PrismaClient, MatchStatus, Stage, MarketType } from "@prisma/client";
+import { PrismaClient, MatchStatus, Stage, MarketType, PostType, PostStatus, AuthorType } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -304,6 +304,9 @@ async function main() {
   // 5. Seed betting markets for group-stage SCHEDULED matches
   const { marketsCreated, selectionsCreated, marketsSkipped } = await seedMarkets();
 
+  // 6. Seed posts
+  const postCount = await seedPosts();
+
   console.log(`\n✅ Seed hoàn tất!`);
   console.log(`   Bảng:                 ${groupLetters.length}`);
   console.log(`   Đội:                  ${Object.keys(teamIdMap).length}`);
@@ -315,6 +318,7 @@ async function main() {
   console.log(`   Markets tạo mới:      ${marketsCreated}`);
   console.log(`   Selections tạo mới:   ${selectionsCreated}`);
   console.log(`   Markets bỏ qua:       ${marketsSkipped}`);
+  console.log(`   Bài viết:             ${postCount}`);
 }
 
 // ─── Knockout match definitions ─────────────────────────────────────────────
@@ -579,6 +583,212 @@ async function seedMarkets() {
   console.log(`     Bỏ qua:     ${marketsSkipped} (đã tồn tại)`);
 
   return { marketsCreated, selectionsCreated, marketsSkipped };
+}
+
+// ─── Seed Posts ──────────────────────────────────────────────────────────────
+
+interface PostDef {
+  slug: string;
+  title: string;
+  body: string;
+  type: PostType;
+  publishedAt: Date;
+}
+
+const SAMPLE_POSTS: PostDef[] = [
+  {
+    slug: "nhan-dinh-bang-a-world-cup-2026",
+    title: "Nhận định Bảng A World Cup 2026: Brazil, Croatia, Morocco và Canada",
+    type: PostType.ANALYSIS,
+    publishedAt: new Date("2026-06-10T08:00:00Z"),
+    body: `## Tổng quan Bảng A
+
+Bảng A World Cup 2026 quy tụ bốn đội bóng với phong cách thi đấu hoàn toàn khác biệt, hứa hẹn mang lại những màn tranh tài kịch tính.
+
+**Brazil** vẫn là ứng viên hàng đầu với dàn sao tấn công đẳng cấp thế giới. Selecao mang đến giải với kỳ vọng phục hận sau thất bại ở Qatar 2022.
+
+**Croatia** — nhà vô địch lần này sẽ phải chứng minh rằng kỳ tích tứ kết 2022 không phải điểm dừng. Modric và cộng sự vẫn còn đó, dù tuổi tác là vấn đề.
+
+**Morocco** sau kỳ tích lịch sử 2022 (vào bán kết), đội quân châu Phi này sẽ cố tạo nên điều bất ngờ tiếp theo.
+
+**Canada** — đội chủ nhà với lợi thế sân nhà và niềm hứng khởi của lần đầu tiên góp mặt tại World Cup sau nhiều thập niên.
+
+## Dự đoán thứ hạng
+
+- 1. **Brazil** — quá mạnh để bị loại sớm
+- 2. **Morocco** — tinh thần "bất bại" từ 2022 vẫn còn đó
+- 3. Croatia — may mắn đi tiếp với tư cách đội thứ ba
+- 4. Canada — lần đầu tham dự, còn thiếu kinh nghiệm
+
+## Trận cần xem
+
+Trận Brazil vs Morocco chắc chắn là điểm nhấn của bảng, khi hai đội đều có thứ gì đó cần chứng minh trước đấu trường thế giới.`,
+  },
+  {
+    slug: "nhan-dinh-bang-e-tay-ban-nha-duc",
+    title: "Nhận định Bảng E: Siêu bảng Tây Ban Nha vs Đức",
+    type: PostType.ANALYSIS,
+    publishedAt: new Date("2026-06-11T09:00:00Z"),
+    body: `## Bảng Tử Thần hay Bảng Vàng?
+
+Bảng E World Cup 2026 được mệnh danh là **"bảng tử thần"** khi quy tụ hai cựu vương Châu Âu là **Tây Ban Nha** và **Đức**, cùng với **Nhật Bản** đang lên và **Ivory Coast** đầy bất ngờ.
+
+## Tây Ban Nha
+
+La Roja đang trong giai đoạn hoàng kim mới. Sau chức vô địch EURO 2024, họ sẽ là ứng cử viên nặng ký nhất bảng E.
+
+- Hàng công với Yamal, Morata, Ferran Torres
+- Trung tuyến kiểm soát bóng tốt nhất thế giới
+- Hàng thủ tương đối ổn định
+
+## Đức
+
+Die Mannschaft đang tái thiết đội hình dưới tay HLV mới. Sức mạnh tập thể là điểm cộng lớn nhất.
+
+## Nhật Bản
+
+Người Nhật luôn là đội "ăn xổi" tại World Cup. Họ đã từng hạ gục Đức và Tây Ban Nha tại Qatar 2022!
+
+## Dự đoán
+
+- 1. Tây Ban Nha
+- 2. Đức (hoặc Nhật Bản — rất khó đoán)
+- 3. Nhật Bản
+- 4. Ivory Coast`,
+  },
+  {
+    slug: "truoc-tran-brazil-vs-croatia",
+    title: "Trước trận: Brazil vs Croatia — Phục hận hay bảo vệ ngai vàng?",
+    type: PostType.PREVIEW,
+    publishedAt: new Date("2026-06-12T07:00:00Z"),
+    body: `## Đại chiến lịch sử tái hiện
+
+Brazil và Croatia từng chạm trán nhau ở **tứ kết World Cup 2022**, khi Croatia loại Brazil sau loạt luân lưu đầy kịch tính. Giờ đây, hai đội lại gặp nhau ngay từ vòng bảng.
+
+## Thống kê đối đầu
+
+- Tổng số lần gặp: 7 trận
+- Brazil thắng: 4 lần
+- Croatia thắng: 2 lần (bao gồm WC 2022)
+- Hòa: 1 lần
+
+## Điểm nóng chiến thuật
+
+**Brazil** khai thác cánh trái với Vinicius Jr. sẽ là thử thách lớn cho hàng thủ Croatia. Neymar cần một trận đấu tốt để im lặng những tiếng chỉ trích.
+
+**Croatia** với pressing tầm trung và những pha phản công nhanh sẽ là vũ khí chính khi đối đầu với Brazil.
+
+## Dự đoán tỉ số
+
+AI phân tích: **Brazil 2-1 Croatia** — selecao sẽ phục hận, nhưng không dễ dàng.`,
+  },
+  {
+    slug: "sau-tran-phap-ha-ha-lan-3-1",
+    title: "Sau trận: Pháp hạ Hà Lan 3-1 trong màn ra mắt ấn tượng",
+    type: PostType.RECAP,
+    publishedAt: new Date("2026-06-13T22:00:00Z"),
+    body: `## Pháp - Hà Lan: 3-1 (FT)
+
+**Bàn thắng:**
+- 23' Mbappé (Pháp)
+- 41' Griezmann (Pháp)
+- 56' Memphis Depay (Hà Lan)
+- 78' Giroud (Pháp)
+
+## Phân tích trận đấu
+
+Pháp ra quân hoàn hảo tại World Cup 2026 với chiến thắng thuyết phục 3-1 trước Hà Lan trong trận mở màn Bảng B.
+
+**Mbappé** mở tỉ số sau 23 phút với cú volley đẳng cấp thế giới. **Griezmann** nâng tỉ số lên 2-0 trước khi nghỉ giải lao.
+
+Hà Lan rút ngắn tỉ số qua **Memphis Depay** ở phút 56, tạo ra 20 phút căng thẳng. Tuy nhiên, **Giroud** chốt hạ trận đấu ở phút 78.
+
+## Điểm nổi bật
+
+- Pháp kiểm soát bóng: **61%**
+- Cú sút trúng đích: Pháp 8, Hà Lan 4
+- Mbappé — Người của trận đấu với 1 bàn thắng + 1 kiến tạo
+
+## Nhận xét AI
+
+Pháp thể hiện đúng sức mạnh của một ứng cử viên vô địch. Hà Lan cần cải thiện hàng thủ nếu muốn đi sâu vào giải.`,
+  },
+  {
+    slug: "soi-keo-vong-mo-man-bai-1",
+    title: "Soi kèo vòng mở màn: 5 trận cần xem và tỉ lệ cược tốt nhất",
+    type: PostType.TIP,
+    publishedAt: new Date("2026-06-14T10:00:00Z"),
+    body: `## Soi kèo 5 trận hot vòng mở màn
+
+AI phân tích tổng hợp từ dữ liệu thống kê để đưa ra những gợi ý kèo tốt nhất.
+
+> **Lưu ý:** Đây là phân tích thuần túy dữ liệu, chỉ mang tính tham khảo. Điểm ảo trong ứng dụng, không phải tiền thật.
+
+## 1. Brazil vs Canada
+
+- **Kèo đề xuất:** Brazil thắng (1X2)
+- **Tỉ lệ:** 1.65
+- **Độ tin cậy AI:** ★★★★☆
+- **Lý do:** Brazil mạnh hơn hoàn toàn, Canada lần đầu dự WC
+
+## 2. Pháp vs Hà Lan
+
+- **Kèo đề xuất:** Tài 2.5 bàn
+- **Tỉ lệ:** 1.85
+- **Độ tin cậy AI:** ★★★☆☆
+- **Lý do:** Cả hai đội đều chơi tấn công mạnh
+
+## 3. Tây Ban Nha vs Nhật Bản
+
+- **Kèo đề xuất:** Nhật Bản +1.5 chấp
+- **Tỉ lệ:** 1.95
+- **Độ tin cậy AI:** ★★★☆☆
+- **Lý do:** Nhật Bản đã từng hạ Tây Ban Nha tại Qatar 2022
+
+## 4. Argentina vs Mexico
+
+- **Kèo đề xuất:** Argentina thắng (1X2)
+- **Tỉ lệ:** 1.55
+- **Độ tin cậy AI:** ★★★★★
+- **Lý do:** Argentina là đương kim vô địch, động lực cực cao
+
+## 5. Đức vs Ivory Coast
+
+- **Kèo đề xuất:** Đức thắng, dưới 3.5 bàn
+- **Tỉ lệ:** 1.75
+- **Độ tin cậy AI:** ★★★★☆
+- **Lý do:** Đức thắng nhưng không thua về phòng ngự`,
+  },
+];
+
+async function seedPosts() {
+  console.log("  → Upsert 5 bài viết mẫu...");
+  let count = 0;
+  for (const p of SAMPLE_POSTS) {
+    await prisma.post.upsert({
+      where: { slug: p.slug },
+      update: {
+        title: p.title,
+        body: p.body,
+        type: p.type,
+        status: PostStatus.PUBLISHED,
+        authorType: AuthorType.AI,
+        publishedAt: p.publishedAt,
+      },
+      create: {
+        slug: p.slug,
+        title: p.title,
+        body: p.body,
+        type: p.type,
+        status: PostStatus.PUBLISHED,
+        authorType: AuthorType.AI,
+        publishedAt: p.publishedAt,
+      },
+    });
+    count++;
+  }
+  console.log(`     Đã upsert ${count} bài viết.`);
+  return count;
 }
 
 main()
