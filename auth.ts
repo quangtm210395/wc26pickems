@@ -33,7 +33,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     session({ session, user }) {
       session.user.id = user.id;
-      session.user.role = user.role;
+      // Bootstrap admin qua env ADMIN_EMAILS (danh sách email, phân tách dấu phẩy).
+      const adminEmails = (process.env.ADMIN_EMAILS ?? "")
+        .split(",")
+        .map((e) => e.trim().toLowerCase())
+        .filter(Boolean);
+      const isAdmin =
+        user.role === "admin" ||
+        (user.email != null && adminEmails.includes(user.email.toLowerCase()));
+      session.user.role = isAdmin ? "admin" : user.role;
       return session;
     },
   },

@@ -18,6 +18,7 @@ const schema = z.object({
   AI_MODEL: z.string().optional(),
   CRON_SECRET: z.string().optional(),
   FOOTBALL_DATA_API_KEY: z.string().optional(),
+  ADMIN_EMAILS: z.string().optional(), // danh sách email admin, phân tách dấu phẩy
 });
 
 export type Env = z.infer<typeof schema>;
