@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { Card, CardContent } from "@/components/ui/card";
+import { ShareButton } from "@/components/share-button";
 
 function formatBalance(n: number): string {
   return n.toLocaleString("vi-VN") + "đ";
@@ -51,13 +52,7 @@ export default async function BxhPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-semibold">Bảng xếp hạng</h1>
-        {/* Placeholder share button — OG share comes in M7 */}
-        <button
-          disabled
-          className="inline-flex min-h-[44px] items-center gap-1.5 rounded-lg border border-border bg-background px-3 text-sm text-muted-foreground opacity-50 cursor-not-allowed"
-        >
-          <span>📤</span> Chia sẻ BXH
-        </button>
+        {currentUserId && <ShareButton userId={currentUserId} />}
       </div>
 
       {topUsers.length === 0 ? (
