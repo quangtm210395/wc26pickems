@@ -26,6 +26,8 @@ const schema = z.object({
   CRON_SECRET: z.string().optional(),
   FOOTBALL_DATA_API_KEY: z.string().optional(),
   ADMIN_EMAILS: z.string().optional(), // danh sách email admin, phân tách dấu phẩy
+  // Feature flags:
+  BETTING_ENABLED: z.string().optional(), // "true" để bật lại tab Kèo (đang ẩn vì odds mock)
 });
 
 export type Env = z.infer<typeof schema>;

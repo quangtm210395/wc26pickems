@@ -1,5 +1,8 @@
+import type { Stage, MarketType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { chatComplete, llmConfigured } from "@/lib/llm";
+import { getBalance } from "@/lib/economy";
+import { vnTime, vnDateKey } from "@/lib/matches";
 
 export function stripDiacritics(s: string): string {
   return s
@@ -50,13 +53,127 @@ export function rankPosts<T extends RankablePost>(posts: T[], query: string, k =
 
 export type Source = { title: string; slug: string };
 
+const STAGE_LABELS: Record<Stage, string> = {
+  GROUP: "Vòng bảng",
+  R32: "Vòng 1/16",
+  R16: "Vòng 1/8",
+  QF: "Tứ kết",
+  SF: "Bán kết",
+  THIRD: "Tranh hạng 3",
+  FINAL: "Chung kết",
+};
+
+const MARKET_TYPE_LABELS: Record<MarketType, string> = {
+  MATCH_1X2: "1x2",
+  GOALS_OU: "Tài/Xỉu bàn thắng",
+  CORNERS_OU: "Phạt góc",
+  CARDS_OU: "Thẻ",
+};
+
+const fmtVnd = (n: number) => n.toLocaleString("vi-VN") + "đ";
+
+/** Lịch + kết quả toàn giải (đã có 2 đội), 1 dòng/trận theo giờ VN — grounding sự kiện. */
+async function buildFixturesContext(): Promise<string> {
+  const matches = await prisma.match.findMany({
+    where: { homeTeamId: { not: null }, awayTeamId: { not: null } },
+    include: { homeTeam: true, awayTeam: true },
+    orderBy: { kickoff: "asc" },
+  });
+  if (matches.length === 0) return "(chưa có lịch thi đấu)";
+  return matches
+    .map((m) => {
+      const [, mo, d] = vnDateKey(m.kickoff).split("-");
+      const when = `${d}/${mo} ${vnTime(m.kickoff)}`;
+      const stage = m.stage === "GROUP" ? `Bảng ${m.groupName ?? "?"}` : STAGE_LABELS[m.stage];
+      const home = m.homeTeam?.name ?? "?";
+      const away = m.awayTeam?.name ?? "?";
+      let result: string;
+      if (m.status === "FINISHED" && m.homeScore != null && m.awayScore != null) {
+        const pens =
+          m.homePens != null && m.awayPens != null ? ` (pen ${m.homePens}-${m.awayPens})` : "";
+        result = `kết thúc ${m.homeScore}-${m.awayScore}${pens}`;
+      } else if (m.status === "LIVE") result = "đang đá";
+      else if (m.status === "POSTPONED") result = "hoãn";
+      else result = "chưa đá";
+      return `[${when} VN] ${stage}: ${home} vs ${away} — ${result}`;
+    })
+    .join("\n");
+}
+
+/** Dữ liệu RIÊNG của người dùng đang hỏi: số dư + lịch sử pickem + lịch sử cược. */
+async function buildUserContext(userId: string): Promise<string> {
+  const [balance, picks, bets] = await Promise.all([
+    getBalance(userId),
+    prisma.pick.findMany({
+      where: { userId },
+      include: { match: { include: { homeTeam: true, awayTeam: true } } },
+      orderBy: { createdAt: "desc" },
+      take: 80,
+    }),
+    prisma.bet.findMany({
+      where: { userId },
+      include: { market: { include: { match: { include: { homeTeam: true, awayTeam: true } } } } },
+      orderBy: { createdAt: "desc" },
+      take: 80,
+    }),
+  ]);
+
+  const lines: string[] = [`Số dư hiện tại: ${fmtVnd(balance)}.`];
+
+  if (picks.length) {
+    lines.push(`Lịch sử Pickems (${picks.length} lượt):`);
+    for (const p of picks) {
+      const h = p.match.homeTeam?.name ?? "?";
+      const a = p.match.awayTeam?.name ?? "?";
+      const choice = p.choice === "HOME" ? `Thắng ${h}` : p.choice === "AWAY" ? `Thắng ${a}` : "Hòa";
+      const st =
+        p.status === "WON" ? `THẮNG +${p.points}đ` : p.status === "LOST" ? "THUA" : "đang chờ";
+      lines.push(`- ${h} vs ${a}: chọn ${choice} → ${st}`);
+    }
+  } else {
+    lines.push("Chưa tham gia lượt Pickems nào.");
+  }
+
+  if (bets.length) {
+    lines.push(`Lịch sử cược (${bets.length} kèo):`);
+    for (const b of bets) {
+      const mt = b.market.match;
+      const h = mt.homeTeam?.name ?? "?";
+      const a = mt.awayTeam?.name ?? "?";
+      const st =
+        b.status === "WON"
+          ? `THẮNG +${fmtVnd(b.payout ?? 0)}`
+          : b.status === "LOST"
+            ? "THUA"
+            : b.status === "VOID"
+              ? "hoàn"
+              : "đang chờ";
+      lines.push(
+        `- ${MARKET_TYPE_LABELS[b.market.type]} ${h} vs ${a}: cửa ${b.selectionKey}, cược ${fmtVnd(b.stake)} → ${st}`,
+      );
+    }
+  }
+
+  return "## DỮ LIỆU CỦA BẠN (người dùng đang hỏi)\n" + lines.join("\n");
+}
+
+const SYSTEM_PROMPT =
+  'Bạn là trợ lý của app dự đoán World Cup 2026 "Đường Đến Ngai Vàng" (chơi điểm ảo, KHÔNG tiền thật). ' +
+  "Trả lời câu hỏi DỰA TRÊN dữ liệu được cung cấp bên dưới, gồm: (1) bài viết đã đăng, (2) LỊCH & KẾT QUẢ trận đấu, " +
+  "(3) DỮ LIỆU CỦA CHÍNH NGƯỜI DÙNG (số dư, lịch sử pickem, lịch sử cược) nếu có. Quy tắc:\n" +
+  "- CHỈ dùng dữ liệu được cung cấp. Nếu thông tin không có, nói rõ là chưa có/không rõ và gợi ý xem mục Lịch hoặc Tin tức. " +
+  "TUYỆT ĐỐI không bịa tỉ số, đội hình, thống kê hay lịch sử ngoài dữ liệu.\n" +
+  '- Phần "DỮ LIỆU CỦA BẠN" là của riêng người dùng đang hỏi; không suy đoán dữ liệu của người khác.\n' +
+  "- Giờ trận đấu hiển thị theo giờ Việt Nam (VN).\n" +
+  "- Trả lời bằng tiếng Việt, ngắn gọn, thân thiện.";
+
 /**
- * Trả lời câu hỏi CHỈ dựa trên các bài đã publish (grounded RAG).
- * - Không có bài liên quan → từ chối, không gọi Claude.
- * - Có bài → Claude trả lời chỉ theo context + trích dẫn nguồn.
+ * Trợ lý hỏi đáp grounded: trả lời dựa trên bài đã đăng + lịch/kết quả trận đấu
+ * + dữ liệu riêng của người dùng (nếu đăng nhập). Không bịa ngoài dữ liệu cung cấp.
  */
 export async function answerQuestion(
   question: string,
+  opts: { userId?: string } = {},
 ): Promise<{ answer: string; sources: Source[] }> {
   const published = await prisma.post.findMany({
     where: { status: "PUBLISHED" },
@@ -64,50 +181,48 @@ export async function answerQuestion(
     orderBy: { publishedAt: "desc" },
     take: 100,
   });
-  const top = rankPosts(published, question, 4);
-
-  if (top.length === 0) {
-    return {
-      answer:
-        "Mình chưa có bài viết nào liên quan tới câu hỏi này. Bạn xem thêm ở mục Tin tức nhé!",
-      sources: [],
-    };
-  }
-  const sources = top.map((p) => ({ title: p.title, slug: p.slug }));
+  const topPosts = rankPosts(published, question, 4);
+  const sources = topPosts.map((p) => ({ title: p.title, slug: p.slug }));
 
   if (!llmConfigured()) {
     return {
-      answer: "Chatbot AI chưa được bật. Nhưng có vài bài liên quan dưới đây:",
+      answer:
+        topPosts.length > 0
+          ? "Chatbot AI chưa được bật. Nhưng có vài bài liên quan dưới đây:"
+          : "Chatbot AI chưa được bật. Bạn xem mục Lịch hoặc Tin tức nhé!",
       sources,
     };
   }
 
-  const context = top.map((p, i) => `### Bài ${i + 1}: ${p.title}\n${p.body}`).join("\n\n");
+  const [fixtures, userBlock] = await Promise.all([
+    buildFixturesContext(),
+    opts.userId ? buildUserContext(opts.userId) : Promise.resolve(""),
+  ]);
+
+  const parts: string[] = [];
+  if (topPosts.length) {
+    parts.push(
+      "## BÀI VIẾT LIÊN QUAN\n" +
+        topPosts.map((p, i) => `### Bài ${i + 1}: ${p.title}\n${p.body}`).join("\n\n"),
+    );
+  }
+  parts.push("## LỊCH & KẾT QUẢ TRẬN ĐẤU\n" + fixtures);
+  if (userBlock) parts.push(userBlock);
+  const context = parts.join("\n\n");
+
   try {
     const answer = await chatComplete(
       [
-        {
-          role: "system",
-          content:
-            "Bạn là trợ lý hỏi đáp của app dự đoán World Cup. CHỈ trả lời dựa trên các bài viết được cung cấp bên dưới. " +
-            "Nếu câu trả lời không có trong các bài, hãy nói rõ là chưa có bài viết đề cập và khuyên người dùng xem mục Tin tức. " +
-            "Trả lời bằng tiếng Việt, ngắn gọn, thân thiện. TUYỆT ĐỐI không bịa thông tin ngoài các bài.",
-        },
-        {
-          role: "user",
-          content: `Các bài viết hiện có:\n\n${context}\n\n---\nCâu hỏi của người dùng: ${question}`,
-        },
+        { role: "system", content: SYSTEM_PROMPT },
+        { role: "user", content: `DỮ LIỆU:\n\n${context}\n\n---\nCâu hỏi của người dùng: ${question}` },
       ],
       { maxTokens: 800, temperature: 0.3 },
     );
-    return {
-      answer: answer || "Xin lỗi, mình chưa trả lời được câu này.",
-      sources,
-    };
+    return { answer: answer || "Xin lỗi, mình chưa trả lời được câu này.", sources };
   } catch (err) {
     console.error("[rag] chatComplete failed:", err);
     return {
-      answer: "Xin lỗi, trợ lý đang bận chút. Bạn xem tạm các bài liên quan bên dưới nhé!",
+      answer: "Xin lỗi, trợ lý đang bận chút, bạn thử lại sau nhé!",
       sources,
     };
   }

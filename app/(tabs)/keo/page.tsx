@@ -60,6 +60,33 @@ function BetStatusBadge({
 // ─── Page ────────────────────────────────────────────────────────────────────
 
 export default async function KeoPage() {
+  // Kèo tạm ẩn: tỉ lệ hiện là mock. Bật lại bằng env BETTING_ENABLED="true"
+  // khi đã có dữ liệu/odds thật.
+  if (process.env.BETTING_ENABLED !== "true") {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center px-4">
+        <Card className="w-full max-w-sm">
+          <CardContent className="flex flex-col items-center gap-4 py-10 text-center">
+            <span className="text-4xl">🚧</span>
+            <h1 className="font-display text-lg font-bold uppercase tracking-tight">
+              Kèo đang bảo trì
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Tính năng cá cược điểm ảo đang được nâng cấp với dữ liệu &amp; tỉ lệ thật. Quay lại
+              sớm nhé! Trong lúc đó, bạn vẫn chơi <strong>Pickems</strong> để leo bảng xếp hạng.
+            </p>
+            <Link
+              href="/pickems"
+              className="rounded-full border border-primary/30 bg-primary/10 px-4 py-2 font-display text-xs font-semibold uppercase tracking-wide text-primary transition-colors hover:bg-primary/15"
+            >
+              🎯 Chơi Pickems
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   const session = await auth();
 
   // Logged-out gate
