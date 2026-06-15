@@ -6,8 +6,7 @@ import { usePathname } from "next/navigation";
 const tabs = [
   { href: "/lich", label: "Lịch", icon: "📅" },
   { href: "/pickems", label: "Pickems", icon: "🎯" },
-  // Kèo tạm ẩn (tỉ lệ đang là mock) — khôi phục khi có dữ liệu/odds thật:
-  // { href: "/keo", label: "Kèo", icon: "💰" },
+  { href: "/keo", label: "Kèo", icon: "💰" },
   { href: "/bxh", label: "BXH", icon: "🏆" },
   { href: "/tin", label: "Tin", icon: "📰" },
 ];
