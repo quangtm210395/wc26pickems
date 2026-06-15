@@ -11,7 +11,7 @@
  *   - Trận từ 2026-06-15 trở đi: SCHEDULED + preview tiếng Việt
  */
 
-import { PrismaClient, MatchStatus, Stage } from "@prisma/client";
+import { PrismaClient, MatchStatus, Stage, MarketType } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -301,6 +301,9 @@ async function main() {
   const knockoutCount = await seedKnockout();
   const grandTotal = totalMatches + knockoutCount;
 
+  // 5. Seed betting markets for group-stage SCHEDULED matches
+  const { marketsCreated, selectionsCreated, marketsSkipped } = await seedMarkets();
+
   console.log(`\n✅ Seed hoàn tất!`);
   console.log(`   Bảng:                 ${groupLetters.length}`);
   console.log(`   Đội:                  ${Object.keys(teamIdMap).length}`);
@@ -309,6 +312,9 @@ async function main() {
   console.log(`   Tổng trận:            ${grandTotal}`);
   console.log(`   Đã đấu (FINISHED):    ${finished}`);
   console.log(`   Chưa đấu (SCHEDULED): ${totalMatches - finished + knockoutCount}`);
+  console.log(`   Markets tạo mới:      ${marketsCreated}`);
+  console.log(`   Selections tạo mới:   ${selectionsCreated}`);
+  console.log(`   Markets bỏ qua:       ${marketsSkipped}`);
 }
 
 // ─── Knockout match definitions ─────────────────────────────────────────────
@@ -418,6 +424,161 @@ async function seedKnockout() {
   }
 
   return knockoutDefs.length;
+}
+
+// ─── Seed Markets ────────────────────────────────────────────────────────────
+
+async function seedMarkets() {
+  console.log("  → Seeding betting markets...");
+
+  // Only matches that are SCHEDULED AND have both homeTeamId + awayTeamId
+  const matches = await prisma.match.findMany({
+    where: {
+      status: MatchStatus.SCHEDULED,
+      homeTeamId: { not: null },
+      awayTeamId: { not: null },
+    },
+    include: { homeTeam: true, awayTeam: true },
+  });
+
+  console.log(`     Tìm thấy ${matches.length} trận SCHEDULED với đội xác định`);
+
+  let marketsCreated = 0;
+  let selectionsCreated = 0;
+  let marketsSkipped = 0;
+
+  for (const match of matches) {
+    const homeCode = match.homeTeam?.code ?? "HOM";
+    const awayCode = match.awayTeam?.code ?? "AWY";
+    const seed = `${match.id}`;
+
+    // Helper: map simpleHash into a range [min, max] with 2 decimal precision
+    function oddsBetween(hashKey: string, min: number, max: number): number {
+      const raw = simpleHash(seed + hashKey);
+      const frac = (raw % 1000) / 1000; // 0..0.999
+      return Math.round((min + frac * (max - min)) * 100) / 100;
+    }
+
+    // ── 1. MATCH_1X2 ──────────────────────────────────────────────────────────
+    const existing1x2 = await prisma.market.findFirst({
+      where: { matchId: match.id, type: MarketType.MATCH_1X2 },
+    });
+    if (!existing1x2) {
+      const market = await prisma.market.create({
+        data: {
+          matchId: match.id,
+          type: MarketType.MATCH_1X2,
+          line: null,
+          mode: "FIXED",
+          status: "OPEN",
+        },
+      });
+      const oddsHome = oddsBetween("1x2h", 1.7, 2.8);
+      const oddsDraw = oddsBetween("1x2d", 3.0, 3.8);
+      const oddsAway = oddsBetween("1x2a", 2.2, 4.2);
+      await prisma.marketSelection.createMany({
+        data: [
+          { marketId: market.id, key: "HOME", label: homeCode, odds: oddsHome },
+          { marketId: market.id, key: "DRAW", label: "X", odds: oddsDraw },
+          { marketId: market.id, key: "AWAY", label: awayCode, odds: oddsAway },
+        ],
+      });
+      marketsCreated++;
+      selectionsCreated += 3;
+    } else {
+      marketsSkipped++;
+    }
+
+    // ── 2. GOALS_OU 2.5 ───────────────────────────────────────────────────────
+    const existingGoals = await prisma.market.findFirst({
+      where: { matchId: match.id, type: MarketType.GOALS_OU },
+    });
+    if (!existingGoals) {
+      const market = await prisma.market.create({
+        data: {
+          matchId: match.id,
+          type: MarketType.GOALS_OU,
+          line: 2.5,
+          mode: "FIXED",
+          status: "OPEN",
+        },
+      });
+      const oddsOver = oddsBetween("gou_o", 1.75, 2.05);
+      const oddsUnder = oddsBetween("gou_u", 1.75, 2.05);
+      await prisma.marketSelection.createMany({
+        data: [
+          { marketId: market.id, key: "OVER", label: "Tài 2.5", odds: oddsOver },
+          { marketId: market.id, key: "UNDER", label: "Xỉu 2.5", odds: oddsUnder },
+        ],
+      });
+      marketsCreated++;
+      selectionsCreated += 2;
+    } else {
+      marketsSkipped++;
+    }
+
+    // ── 3. CORNERS_OU 9.5 ────────────────────────────────────────────────────
+    const existingCorners = await prisma.market.findFirst({
+      where: { matchId: match.id, type: MarketType.CORNERS_OU },
+    });
+    if (!existingCorners) {
+      const market = await prisma.market.create({
+        data: {
+          matchId: match.id,
+          type: MarketType.CORNERS_OU,
+          line: 9.5,
+          mode: "FIXED",
+          status: "OPEN",
+        },
+      });
+      const oddsOver = oddsBetween("cou_o", 1.8, 2.0);
+      const oddsUnder = oddsBetween("cou_u", 1.8, 2.0);
+      await prisma.marketSelection.createMany({
+        data: [
+          { marketId: market.id, key: "OVER", label: "Tài 9.5", odds: oddsOver },
+          { marketId: market.id, key: "UNDER", label: "Xỉu 9.5", odds: oddsUnder },
+        ],
+      });
+      marketsCreated++;
+      selectionsCreated += 2;
+    } else {
+      marketsSkipped++;
+    }
+
+    // ── 4. CARDS_OU 3.5 ──────────────────────────────────────────────────────
+    const existingCards = await prisma.market.findFirst({
+      where: { matchId: match.id, type: MarketType.CARDS_OU },
+    });
+    if (!existingCards) {
+      const market = await prisma.market.create({
+        data: {
+          matchId: match.id,
+          type: MarketType.CARDS_OU,
+          line: 3.5,
+          mode: "FIXED",
+          status: "OPEN",
+        },
+      });
+      const oddsOver = oddsBetween("kou_o", 1.8, 2.0);
+      const oddsUnder = oddsBetween("kou_u", 1.8, 2.0);
+      await prisma.marketSelection.createMany({
+        data: [
+          { marketId: market.id, key: "OVER", label: "Tài 3.5", odds: oddsOver },
+          { marketId: market.id, key: "UNDER", label: "Xỉu 3.5", odds: oddsUnder },
+        ],
+      });
+      marketsCreated++;
+      selectionsCreated += 2;
+    } else {
+      marketsSkipped++;
+    }
+  }
+
+  console.log(`\n  Kèo thị trường:`);
+  console.log(`     Tạo mới:    ${marketsCreated} markets, ${selectionsCreated} selections`);
+  console.log(`     Bỏ qua:     ${marketsSkipped} (đã tồn tại)`);
+
+  return { marketsCreated, selectionsCreated, marketsSkipped };
 }
 
 main()
