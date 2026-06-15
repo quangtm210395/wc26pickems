@@ -20,6 +20,7 @@ model User {
   sessions      Session[]
   picks         Pick[]
   txns          WalletTransaction[]
+  bets          Bet[]
 }
 
 model Account {
@@ -114,6 +115,7 @@ model Match {
   externalId  String?     @unique // id từ football-data API để sync
   stats       MatchStats?
   picks       Pick[]
+  markets     Market[]
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
@@ -193,4 +195,77 @@ model WalletTransaction {
   createdAt    DateTime @default(now())
 
   @@index([userId, createdAt])
+}
+
+// ---------- Kèo cá cược (M3) ----------
+
+enum MarketType {
+  MATCH_1X2 // 1x2 (thắng/hòa/thua)
+  GOALS_OU // tài xỉu bàn thắng
+  CORNERS_OU // phạt góc tài/xỉu
+  CARDS_OU // thẻ tài/xỉu
+}
+
+enum MarketMode {
+  FIXED // tỉ lệ cố định (AI/admin set)
+  PARIMUTUEL // chia pool theo lượng cược
+}
+
+enum MarketStatus {
+  OPEN
+  LOCKED
+  SETTLED
+  VOID
+}
+
+enum BetStatus {
+  PENDING
+  WON
+  LOST
+  VOID
+}
+
+model Market {
+  id         String            @id @default(cuid())
+  matchId    String
+  match      Match             @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  type       MarketType
+  line       Float? // ngưỡng tài/xỉu (vd 2.5)
+  mode       MarketMode        @default(FIXED)
+  status     MarketStatus      @default(OPEN)
+  result     String? // selection key thắng (sau settle)
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+  selections MarketSelection[]
+  bets       Bet[]
+
+  @@index([matchId])
+}
+
+model MarketSelection {
+  id       String @id @default(cuid())
+  marketId String
+  market   Market @relation(fields: [marketId], references: [id], onDelete: Cascade)
+  key      String // "HOME"|"DRAW"|"AWAY"|"OVER"|"UNDER"
+  label    String
+  odds     Float  @default(2.0) // tỉ lệ FIXED
+
+  @@unique([marketId, key])
+}
+
+model Bet {
+  id           String    @id @default(cuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  marketId     String
+  market       Market    @relation(fields: [marketId], references: [id], onDelete: Cascade)
+  selectionKey String
+  stake        Int
+  oddsAtBet    Float?
+  payout       Int?
+  status       BetStatus @default(PENDING)
+  createdAt    DateTime  @default(now())
+
+  @@index([userId])
+  @@index([marketId])
 }
