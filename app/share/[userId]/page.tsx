@@ -2,6 +2,9 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/auth";
+import { getOrCreateReferralCode } from "@/lib/referral";
+import { ShareRefSetter } from "@/components/share-ref-setter";
 import { Card, CardContent } from "@/components/ui/card";
 
 async function getUserWithRank(userId: string) {
@@ -65,10 +68,13 @@ export default async function SharePage({
 
   if (!data) notFound();
 
+  const session = await auth();
+  const refCode = await getOrCreateReferralCode(userId);
   const displayName = data.name ?? "Người chơi";
 
   return (
     <div className="flex min-h-[80vh] items-center justify-center px-4">
+      {!session && <ShareRefSetter code={refCode} />}
       <div className="w-full max-w-sm space-y-4">
         {/* OG preview card */}
         <Card>
@@ -103,7 +109,7 @@ export default async function SharePage({
         {/* CTA */}
         <div className="flex flex-col gap-2">
           <Link
-            href="/"
+            href={session ? "/lich" : `/r/${refCode}`}
             className="flex min-h-[44px] items-center justify-center rounded-lg bg-primary px-6 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/80"
           >
             Vào chơi ngay
