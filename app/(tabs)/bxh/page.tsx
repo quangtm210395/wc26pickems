@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { Card, CardContent } from "@/components/ui/card";
@@ -56,15 +57,37 @@ export default async function BxhPage() {
     select: { id: true, name: true, image: true, balance: true },
   });
 
+  const meIdx = currentUserId ? topUsers.findIndex((u) => u.id === currentUserId) : -1;
+  const shareCaption =
+    meIdx >= 0
+      ? `🏆 Mình đang hạng #${meIdx + 1} với ${topUsers[meIdx].balance.toLocaleString("vi-VN")}đ trên "Đường Đến Ngai Vàng" World Cup 2026! Vào đua xem bạn hạng mấy 👇`
+      : `🏆 Vào "Đường Đến Ngai Vàng" World Cup 2026 đua dự đoán với mình nào! Ai đoán đỉnh nhất hội? 👇`;
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <h1 className="flex items-center gap-2 text-xl font-bold uppercase tracking-tight">
           <span className="h-5 w-1 rounded-full bg-primary shadow-[0_0_8px_0_rgba(231,180,58,0.6)]" />
           Bảng xếp hạng
         </h1>
-        {currentUserId && <ShareButton userId={currentUserId} />}
+        <Link
+          href="/nhom"
+          className="inline-flex min-h-[40px] shrink-0 items-center gap-1 rounded-lg border border-primary/30 bg-primary/10 px-3 font-display text-xs font-semibold text-primary transition-colors hover:bg-primary/15"
+        >
+          🤝 Nhóm đua
+        </Link>
       </div>
+
+      {currentUserId && (
+        <Card className="ring-primary/15">
+          <CardContent className="space-y-2 py-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Khoe thứ hạng của bạn
+            </p>
+            <ShareButton path={`/share/${currentUserId}`} caption={shareCaption} label="Chia sẻ BXH" />
+          </CardContent>
+        </Card>
+      )}
 
       {topUsers.length === 0 ? (
         <Card>

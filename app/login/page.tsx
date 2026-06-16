@@ -5,8 +5,6 @@ import { Button } from "@/components/ui/button";
 export default async function LoginPage() {
   if (await auth()) redirect("/lich");
 
-  const googleEnabled = Boolean(process.env.AUTH_GOOGLE_ID);
-
   return (
     <div className="space-y-6 pt-10">
       <div className="text-center">
@@ -25,38 +23,19 @@ export default async function LoginPage() {
       </div>
 
       <div className="space-y-4 rounded-2xl border border-border bg-card p-5 shadow-[0_1px_0_0_rgba(231,180,58,0.08)_inset]">
-        {googleEnabled && (
-          <form
-            action={async () => {
-              "use server";
-              await signIn("google", { redirectTo: "/lich" });
-            }}
-          >
-            <Button className="h-11 w-full" type="submit">
-              Tiếp tục với Google
-            </Button>
-          </form>
-        )}
-
         <form
-          action={async (formData: FormData) => {
+          action={async () => {
             "use server";
-            await signIn("resend", formData);
+            await signIn("google", { redirectTo: "/lich" });
           }}
-          className="space-y-3"
         >
-          <input type="hidden" name="redirectTo" value="/lich" />
-          <input
-            name="email"
-            type="email"
-            required
-            placeholder="email@cua-ban.com"
-            className="h-11 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none transition-colors focus:border-primary/50 focus:ring-2 focus:ring-ring/40"
-          />
-          <Button variant="secondary" className="h-11 w-full" type="submit">
-            Gửi link đăng nhập qua email
+          <Button className="h-11 w-full" type="submit">
+            Tiếp tục với Google
           </Button>
         </form>
+        <p className="text-center text-xs text-muted-foreground">
+          Đăng nhập nhanh bằng Google, vào chơi liền.
+        </p>
       </div>
 
       <p className="text-center text-xs text-muted-foreground">
