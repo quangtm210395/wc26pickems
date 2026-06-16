@@ -75,6 +75,58 @@ export default async function ViPage() {
     getReferralCount(userId),
   ]);
 
+  // Resolve ngữ cảnh cho lịch sử điểm: trận nào (pickem/kèo) hoặc mời/được mời ai.
+  const idsBy = (rt: string) => [
+    ...new Set(txns.filter((t) => t.refType === rt && t.refId).map((t) => t.refId as string)),
+  ];
+  const [matchRows, marketRows, refUsers] = await Promise.all([
+    prisma.match.findMany({
+      where: { id: { in: idsBy("match") } },
+      include: { homeTeam: true, awayTeam: true },
+    }),
+    prisma.market.findMany({
+      where: { id: { in: idsBy("market") } },
+      include: { match: { include: { homeTeam: true, awayTeam: true } } },
+    }),
+    prisma.user.findMany({
+      where: { id: { in: idsBy("referral") } },
+      select: { id: true, name: true, email: true },
+    }),
+  ]);
+  const matchMap = new Map(matchRows.map((m) => [m.id, m]));
+  const marketMap = new Map(marketRows.map((m) => [m.id, m]));
+  const userMap = new Map(refUsers.map((u) => [u.id, u]));
+
+  const teamPair = (m: {
+    homeTeam: { name: string } | null;
+    awayTeam: { name: string } | null;
+  }) => `${m.homeTeam?.name ?? "?"} vs ${m.awayTeam?.name ?? "?"}`;
+  const userName = (u: { name: string | null; email: string | null }) =>
+    u.name || u.email?.split("@")[0] || "một người bạn";
+
+  function txDetail(tx: (typeof txns)[number]): string | null {
+    const id = tx.refId;
+    if (tx.refType === "match" && id) {
+      const m = matchMap.get(id);
+      if (m)
+        return m.homeScore != null && m.awayScore != null
+          ? `${m.homeTeam?.name ?? "?"} ${m.homeScore}-${m.awayScore} ${m.awayTeam?.name ?? "?"}`
+          : teamPair(m);
+    }
+    if (tx.refType === "market" && id) {
+      const mk = marketMap.get(id);
+      if (mk) return tx.note ? `${tx.note} · ${teamPair(mk.match)}` : teamPair(mk.match);
+    }
+    if (tx.refType === "referral" && id) {
+      const u = userMap.get(id);
+      if (u)
+        return tx.type === "REFERRED"
+          ? `Qua lời mời của ${userName(u)}`
+          : `Mời được ${userName(u)}`;
+    }
+    return tx.note;
+  }
+
   const activeLoanOutstanding = activeLoan ? activeLoan.outstanding : null;
 
   return (
@@ -113,13 +165,14 @@ export default async function ViPage() {
             <ul className="divide-y">
               {txns.map((tx) => {
                 const isPositive = tx.amount > 0;
+                const detail = txDetail(tx);
                 return (
                   <li key={tx.id} className="flex items-center gap-2 py-2.5">
-                    {/* Left: label + note */}
+                    {/* Left: label + chi tiết nguồn điểm */}
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">{TX_LABELS[tx.type]}</p>
-                      {tx.note && (
-                        <p className="text-xs text-muted-foreground truncate">{tx.note}</p>
+                      {detail && (
+                        <p className="text-xs text-muted-foreground truncate">{detail}</p>
                       )}
                       <p className="text-[10px] text-muted-foreground">{txTime(tx.createdAt)}</p>
                     </div>
