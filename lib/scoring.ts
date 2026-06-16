@@ -4,7 +4,7 @@ import type { Match, PickChoice, Stage } from "@prisma/client";
 
 /** Thang điểm pickems theo vòng (đoán đúng đội thắng/hòa). */
 export const STAGE_POINTS: Record<Stage, number> = {
-  GROUP: 50,
+  GROUP: 100,
   R32: 100,
   R16: 150,
   QF: 250,

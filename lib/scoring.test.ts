@@ -30,10 +30,10 @@ describe("matchOutcome", () => {
 });
 
 describe("scorePick", () => {
-  it("đoán đúng vòng bảng = WON +50", () =>
+  it("đoán đúng vòng bảng = WON +100", () =>
     expect(scorePick("HOME", m({ homeScore: 2, awayScore: 0, stage: "GROUP" }))).toEqual({
       status: "WON",
-      points: 50,
+      points: 100,
     }));
   it("đoán sai = LOST 0", () =>
     expect(scorePick("AWAY", m({ homeScore: 2, awayScore: 0, stage: "GROUP" }))).toEqual({
