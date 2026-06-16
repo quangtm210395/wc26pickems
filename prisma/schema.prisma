@@ -29,6 +29,7 @@ model User {
   referrals     User[]    @relation("Referrals")
   ownedLeagues  League[]       @relation("LeagueOwner")
   leagueMembers LeagueMember[]
+  championBet   ChampionBet?
 }
 
 model Account {
@@ -100,6 +101,7 @@ model Team {
   createdAt   DateTime @default(now())
   homeMatches Match[]  @relation("home")
   awayMatches Match[]  @relation("away")
+  championBets ChampionBet[]
 }
 
 model Match {
@@ -364,4 +366,21 @@ model LeagueMember {
 
   @@unique([leagueId, userId])
   @@index([userId])
+}
+
+// ---------- Pool dự đoán đội vô địch (parimutuel) ----------
+
+model ChampionBet {
+  id        String    @id @default(cuid())
+  userId    String    @unique // 1 dự đoán / người (được nạp thêm vào cùng đội)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  teamId    String
+  team      Team      @relation(fields: [teamId], references: [id])
+  stake     Int
+  payout    Int?
+  status    BetStatus @default(PENDING)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([teamId])
 }

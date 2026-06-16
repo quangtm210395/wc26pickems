@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { settleMatch } from "@/lib/scoring";
 import { settleAllMarkets } from "@/lib/betting";
+import { settleChampionPool } from "@/lib/champion";
 import type {
   MatchStatus,
   MarketType,
@@ -76,7 +77,7 @@ export async function POST(req: Request) {
 
   const match = await prisma.match.findUnique({
     where: { externalId: extId },
-    select: { id: true, status: true },
+    select: { id: true, status: true, stage: true },
   });
   if (!match) return NextResponse.json({ error: `không tìm thấy trận ${extId}` }, { status: 404 });
 
@@ -161,10 +162,34 @@ export async function POST(req: Request) {
 
   const finalStatus = (body.status as MatchStatus) ?? match.status;
   let settled: { pickems: number; bets: number } | null = null;
+  let championPool: { settled: number; refunded: boolean } | null = null;
   if (finalStatus === "FINISHED") {
     const p = await settleMatch(match.id);
     const m = await settleAllMarkets();
     settled = { pickems: p.settled, bets: m.settled };
+
+    // Trận chung kết kết thúc → chốt pool dự đoán vô địch.
+    if (match.stage === "FINAL") {
+      const f = await prisma.match.findUnique({
+        where: { id: match.id },
+        select: {
+          homeScore: true,
+          awayScore: true,
+          homePens: true,
+          awayPens: true,
+          homeTeamId: true,
+          awayTeamId: true,
+        },
+      });
+      if (f && f.homeScore != null && f.awayScore != null && f.homeTeamId && f.awayTeamId) {
+        let winner: string | null = null;
+        if (f.homeScore > f.awayScore) winner = f.homeTeamId;
+        else if (f.awayScore > f.homeScore) winner = f.awayTeamId;
+        else if (f.homePens != null && f.awayPens != null)
+          winner = f.homePens >= f.awayPens ? f.homeTeamId : f.awayTeamId;
+        if (winner) championPool = await settleChampionPool(winner);
+      }
+    }
   }
 
   revalidatePath("/lich");
@@ -177,6 +202,7 @@ export async function POST(req: Request) {
     externalId: extId,
     status: finalStatus,
     settled,
+    championPool,
     marketsUpserted,
   });
 }

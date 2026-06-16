@@ -187,6 +187,21 @@ export default async function KeoPage() {
         </CardContent>
       </Card>
 
+      {/* Pool dự đoán vô địch */}
+      <Link href="/vo-dich" className="block">
+        <Card className="border-primary/30 bg-gradient-to-br from-primary/10 to-transparent transition-colors hover:from-primary/15">
+          <CardContent className="flex items-center justify-between gap-3 py-3">
+            <div className="min-w-0">
+              <p className="font-display text-sm font-bold text-primary">🏆 Pool dự đoán vô địch</p>
+              <p className="truncate text-xs text-muted-foreground">
+                Đặt điểm đoán nhà vô địch — trúng chia cả pool!
+              </p>
+            </div>
+            <span className="shrink-0 text-muted-foreground">›</span>
+          </CardContent>
+        </Card>
+      </Link>
+
       {/* Section: My bets */}
       {userBets.length > 0 && (
         <section className="space-y-2">
