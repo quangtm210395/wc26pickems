@@ -9,6 +9,15 @@ import {
   repayLoan,
   type ClaimResult,
 } from "@/lib/wallet";
+import { checkIn } from "@/lib/checkin";
+
+export async function checkInAction() {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Chưa đăng nhập");
+  const result = await checkIn(session.user.id);
+  revalidatePath("/vi");
+  return result;
+}
 
 export async function claimDripAction(): Promise<ClaimResult> {
   const session = await auth();

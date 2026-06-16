@@ -2,8 +2,9 @@
 import { useTransition, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { claimDripAction, borrowAction, repayAction } from "@/app/vi/actions";
+import { claimDripAction, checkInAction, borrowAction, repayAction } from "@/app/vi/actions";
 import type { ClaimResult } from "@/lib/wallet";
+import type { CheckinState } from "@/lib/checkin";
 
 const fmt = (n: number) => new Intl.NumberFormat("vi-VN").format(n);
 
@@ -68,6 +69,72 @@ export function NapDiemCard() {
       </CardHeader>
       <CardContent className="flex flex-col gap-2 pb-4">
         <ClaimButton label="🎁 Nhận 200đ hôm nay" action={claimDripAction} />
+      </CardContent>
+    </Card>
+  );
+}
+
+// ─── Check-in streak card ────────────────────────────────────────────────────
+
+export function CheckinCard({ streak, canCheckIn, nextStreakDay, nextReward }: CheckinState) {
+  const [isPending, startTransition] = useTransition();
+  const [done, setDone] = useState<{ streakDay: number; total: number; bonus: number } | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+
+  function handleCheckIn() {
+    startTransition(async () => {
+      setErr(null);
+      try {
+        const res = await checkInAction();
+        if (res.ok) {
+          setDone({ streakDay: res.streakDay!, total: res.total!, bonus: res.bonus! });
+        } else {
+          setErr(res.reason ?? "Không thể check-in");
+        }
+      } catch (e) {
+        setErr((e as Error).message ?? "Lỗi");
+      }
+    });
+  }
+
+  const shownStreak = done ? done.streakDay : streak;
+
+  return (
+    <Card className="ring-primary/15">
+      <CardHeader className="pb-2 pt-4">
+        <CardTitle className="flex items-center justify-between text-base">
+          <span>Check-in hằng ngày</span>
+          <span className="font-display text-sm text-primary">🔥 {shownStreak} ngày</span>
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-2 pb-4">
+        {done ? (
+          <p className="text-sm text-emerald-400">
+            ✓ Check-in ngày {done.streakDay}: +{fmt(done.total)}đ
+            {done.bonus > 0 && ` (gồm thưởng mốc +${fmt(done.bonus)})`} 🎉
+          </p>
+        ) : canCheckIn ? (
+          <>
+            <Button className="min-h-[44px]" onClick={handleCheckIn} disabled={isPending}>
+              {isPending ? (
+                <span className="animate-pulse">Đang xử lý…</span>
+              ) : (
+                `🔥 Check-in nhận ${fmt(nextReward.total)}đ`
+              )}
+            </Button>
+            <p className="text-xs text-muted-foreground">
+              Ngày thứ {nextStreakDay}
+              {nextReward.growthPct > 0 && ` · +${nextReward.growthPct}% so với hôm qua`}
+              {nextReward.bonus > 0 && ` · 🎁 thưởng mốc 7 ngày +${fmt(nextReward.bonus)}đ`}
+            </p>
+          </>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            ✓ Đã check-in hôm nay. Quay lại mai (ngày {nextStreakDay}) nhận ~{fmt(nextReward.total)}đ
+            — đừng để đứt chuỗi nhé! 🔥
+          </p>
+        )}
+        {err && <p className="text-xs text-destructive">{err}</p>}
       </CardContent>
     </Card>
   );

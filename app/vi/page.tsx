@@ -4,9 +4,10 @@ import { prisma } from "@/lib/prisma";
 import { getBalance } from "@/lib/economy";
 import { getActiveLoan } from "@/lib/wallet";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { NapDiemCard, LoanCard } from "@/components/wallet-actions";
+import { CheckinCard, LoanCard } from "@/components/wallet-actions";
 import { ReferralCard } from "@/components/referral-card";
 import { getOrCreateReferralCode, getReferralCount } from "@/lib/referral";
+import { getCheckinState } from "@/lib/checkin";
 import type { TxType } from "@prisma/client";
 
 const fmt = (n: number) => new Intl.NumberFormat("vi-VN").format(n);
@@ -63,7 +64,7 @@ export default async function ViPage() {
 
   const userId = session.user.id;
 
-  const [balance, activeLoan, txns, referralCode, referralCount] = await Promise.all([
+  const [balance, activeLoan, txns, referralCode, referralCount, checkinState] = await Promise.all([
     getBalance(userId),
     getActiveLoan(userId),
     prisma.walletTransaction.findMany({
@@ -73,6 +74,7 @@ export default async function ViPage() {
     }),
     getOrCreateReferralCode(userId),
     getReferralCount(userId),
+    getCheckinState(userId),
   ]);
 
   // Resolve ngữ cảnh cho lịch sử điểm: trận nào (pickem/kèo) hoặc mời/được mời ai.
@@ -144,8 +146,8 @@ export default async function ViPage() {
         </CardContent>
       </Card>
 
-      {/* Claim actions */}
-      <NapDiemCard />
+      {/* Check-in streak */}
+      <CheckinCard {...checkinState} />
 
       {/* Referral */}
       <ReferralCard code={referralCode} count={referralCount} />

@@ -30,6 +30,8 @@ model User {
   ownedLeagues  League[]       @relation("LeagueOwner")
   leagueMembers LeagueMember[]
   championBet   ChampionBet?
+  checkinStreak Int            @default(0) // chuỗi check-in liên tiếp
+  lastCheckinAt DateTime?
 }
 
 model Account {
