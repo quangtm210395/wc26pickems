@@ -68,6 +68,7 @@ const MARKET_TYPE_LABELS: Record<MarketType, string> = {
   GOALS_OU: "Tài/Xỉu bàn thắng",
   CORNERS_OU: "Phạt góc",
   CARDS_OU: "Thẻ",
+  CORRECT_SCORE: "Tỉ số chính xác",
 };
 
 const fmtVnd = (n: number) => n.toLocaleString("vi-VN") + "đ";

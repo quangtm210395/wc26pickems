@@ -49,6 +49,11 @@ describe("determineMarketResult", () => {
       ),
     ).toBe("UNDER"));
 
+  it("correct score trả 'H-A'", () =>
+    expect(determineMarketResult(r({ type: "CORRECT_SCORE", homeScore: 2, awayScore: 1 }))).toBe(
+      "2-1",
+    ));
+
   it("null khi chưa có tỉ số", () =>
     expect(determineMarketResult(r({ type: "MATCH_1X2" }))).toBeNull());
 });

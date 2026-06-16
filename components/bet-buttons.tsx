@@ -55,8 +55,8 @@ export function BetButtons({ marketId, selections }: BetButtonsProps) {
 
   return (
     <div className="mt-1.5 space-y-1.5">
-      {/* Selection buttons */}
-      <div className="flex gap-1.5">
+      {/* Selection buttons — lưới khi nhiều cửa (vd tỉ số chính xác), hàng ngang khi ít */}
+      <div className={selections.length > 3 ? "grid grid-cols-3 gap-1.5" : "flex gap-1.5"}>
         {selections.map((sel) => {
           const isActive = selectedKey === sel.key;
           return (

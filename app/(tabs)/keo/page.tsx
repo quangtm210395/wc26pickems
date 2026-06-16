@@ -18,6 +18,7 @@ const MARKET_TYPE_LABEL: Record<MarketType, string> = {
   GOALS_OU: "Tài/Xỉu bàn thắng",
   CORNERS_OU: "Phạt góc",
   CARDS_OU: "Thẻ",
+  CORRECT_SCORE: "Tỉ số chính xác",
 };
 
 function BetStatusBadge({

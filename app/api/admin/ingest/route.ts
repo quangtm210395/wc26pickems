@@ -16,7 +16,13 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 const STATUSES: MatchStatus[] = ["SCHEDULED", "LIVE", "FINISHED", "POSTPONED"];
-const MARKET_TYPES: MarketType[] = ["MATCH_1X2", "GOALS_OU", "CORNERS_OU", "CARDS_OU"];
+const MARKET_TYPES: MarketType[] = [
+  "MATCH_1X2",
+  "GOALS_OU",
+  "CORNERS_OU",
+  "CARDS_OU",
+  "CORRECT_SCORE",
+];
 const MARKET_MODES: MarketMode[] = ["FIXED", "PARIMUTUEL"];
 const MARKET_STATUSES: MarketStatus[] = ["OPEN", "LOCKED", "SETTLED", "VOID"];
 

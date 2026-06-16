@@ -51,6 +51,9 @@ export function determineMarketResult(i: ResultInput): string | null {
       const c = totalCards(i);
       return c == null ? null : c > i.line ? "OVER" : "UNDER";
     }
+    case "CORRECT_SCORE":
+      // Trả tỉ số thật dạng "H-A"; settleMarket sẽ map sang "OTHER" nếu không có cửa đó.
+      return `${i.homeScore}-${i.awayScore}`;
   }
 }
 
@@ -115,7 +118,7 @@ export async function settleMarket(marketId: string): Promise<{ settled: number;
   return prisma.$transaction(async (tx) => {
     const market = await tx.market.findUnique({
       where: { id: marketId },
-      include: { match: { include: { stats: true } } },
+      include: { match: { include: { stats: true } }, selections: true },
     });
     if (!market || market.status === "SETTLED" || market.status === "VOID") {
       return { settled: 0, paid: 0 };
@@ -137,15 +140,19 @@ export async function settleMarket(marketId: string): Promise<{ settled: number;
     });
     if (result == null) return { settled: 0, paid: 0 }; // chưa đủ data (vd thiếu thông số)
 
+    // Tỉ số chính xác: tỉ số thật không nằm trong các cửa đã mở → cửa "OTHER" thắng (nếu có).
+    const selKeys = new Set(market.selections.map((s) => s.key));
+    const winKey = !selKeys.has(result) && selKeys.has("OTHER") ? "OTHER" : result;
+
     const bets = await tx.bet.findMany({ where: { marketId, status: "PENDING" } });
     const totalPool = bets.reduce((s, b) => s + b.stake, 0);
     const winningPool = bets
-      .filter((b) => b.selectionKey === result)
+      .filter((b) => b.selectionKey === winKey)
       .reduce((s, b) => s + b.stake, 0);
 
     let paid = 0;
     for (const b of bets) {
-      const won = b.selectionKey === result;
+      const won = b.selectionKey === winKey;
       const payout = won
         ? market.mode === "FIXED"
           ? fixedPayout(b.stake, b.oddsAtBet ?? 2.0)
@@ -164,7 +171,7 @@ export async function settleMarket(marketId: string): Promise<{ settled: number;
         paid += payout;
       }
     }
-    await tx.market.update({ where: { id: marketId }, data: { status: "SETTLED", result } });
+    await tx.market.update({ where: { id: marketId }, data: { status: "SETTLED", result: winKey } });
     return { settled: bets.length, paid };
   });
 }

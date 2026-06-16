@@ -221,6 +221,7 @@ enum MarketType {
   GOALS_OU // tài xỉu bàn thắng
   CORNERS_OU // phạt góc tài/xỉu
   CARDS_OU // thẻ tài/xỉu
+  CORRECT_SCORE // tỉ số chính xác (selection key "H-A", có cửa "OTHER")
 }
 
 enum MarketMode {
