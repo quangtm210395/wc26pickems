@@ -5,73 +5,13 @@ import { getBalance } from "@/lib/economy";
 import { vnTime, vnDateKey, vnDateLabel } from "@/lib/matches";
 import { Card, CardContent } from "@/components/ui/card";
 import { BetButtons } from "@/components/bet-buttons";
-import type { MarketType, BetStatus } from "@prisma/client";
+import { BetDetailCard } from "@/components/bet-detail-card";
+import { MARKET_TYPE_LABEL } from "@/lib/bet-display";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function formatBalance(n: number): string {
   return n.toLocaleString("vi-VN") + "đ";
-}
-
-const MARKET_TYPE_LABEL: Record<MarketType, string> = {
-  MATCH_1X2: "1x2",
-  GOALS_OU: "Tài/Xỉu bàn thắng",
-  CORNERS_OU: "Phạt góc",
-  CARDS_OU: "Thẻ",
-  CORRECT_SCORE: "Tỉ số chính xác",
-  ASIAN_HANDICAP: "Kèo chấp (châu Á)",
-};
-
-function BetStatusBadge({
-  status,
-  stake,
-  payout,
-  oddsAtBet,
-}: {
-  status: BetStatus;
-  stake: number;
-  payout: number | null;
-  oddsAtBet: number | null;
-}) {
-  const amt = (payout ?? 0).toLocaleString("vi-VN");
-  if (status === "WON" || status === "HALF_WON") {
-    return (
-      <span className="rounded-md border border-accent/40 bg-accent/20 px-2 py-0.5 font-display text-[10px] font-semibold tabular-nums text-emerald-300">
-        {status === "HALF_WON" && "½ "}+{amt}đ
-      </span>
-    );
-  }
-  if (status === "PUSH" || status === "VOID") {
-    return (
-      <span className="rounded-md border border-border bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">
-        Hòa vốn · hoàn {amt}đ
-      </span>
-    );
-  }
-  if (status === "HALF_LOST") {
-    return (
-      <span className="rounded-md bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">
-        Thua nửa · hoàn {amt}đ
-      </span>
-    );
-  }
-  if (status === "LOST") {
-    return (
-      <span className="rounded-md bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">
-        Thua
-      </span>
-    );
-  }
-  // PENDING
-  const potentialWin = oddsAtBet != null ? Math.round(stake * oddsAtBet) : null;
-  return (
-    <span className="rounded-md border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] text-primary">
-      Đang chờ
-      {potentialWin != null && (
-        <> · thắng {potentialWin.toLocaleString("vi-VN")}đ</>
-      )}
-    </span>
-  );
 }
 
 // ─── Page ────────────────────────────────────────────────────────────────────
@@ -143,6 +83,7 @@ export default async function KeoPage() {
       include: {
         market: {
           include: {
+            selections: true,
             match: {
               include: { homeTeam: true, awayTeam: true },
             },
@@ -226,41 +167,9 @@ export default async function KeoPage() {
             Kèo của tôi
           </h2>
           <div className="space-y-2">
-            {userBets.map((bet) => {
-              const market = bet.market;
-              const match = market.match;
-              const homeTeam = match.homeTeam;
-              const awayTeam = match.awayTeam;
-              return (
-                <div key={bet.id} className="rounded-xl border border-border bg-card p-3 space-y-1.5">
-                  {/* Match teams */}
-                  <div className="flex items-center gap-1 text-sm font-medium">
-                    <span>{homeTeam?.flag ?? "🏳️"}</span>
-                    <span className="truncate">{homeTeam?.name ?? "TBD"}</span>
-                    <span className="text-muted-foreground mx-1">vs</span>
-                    <span className="truncate">{awayTeam?.name ?? "TBD"}</span>
-                    <span>{awayTeam?.flag ?? "🏳️"}</span>
-                  </div>
-                  {/* Market + Selection + Status */}
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="space-y-0.5">
-                      <p className="text-[10px] text-muted-foreground">
-                        {MARKET_TYPE_LABEL[market.type]}
-                      </p>
-                      <p className="text-xs font-medium">
-                        {bet.selectionKey} · {bet.stake.toLocaleString("vi-VN")}đ
-                      </p>
-                    </div>
-                    <BetStatusBadge
-                      status={bet.status}
-                      stake={bet.stake}
-                      payout={bet.payout}
-                      oddsAtBet={bet.oddsAtBet}
-                    />
-                  </div>
-                </div>
-              );
-            })}
+            {userBets.map((bet) => (
+              <BetDetailCard key={bet.id} bet={bet} />
+            ))}
           </div>
         </section>
       )}

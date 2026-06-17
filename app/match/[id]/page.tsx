@@ -1,6 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { auth } from "@/auth";
+import { prisma } from "@/lib/prisma";
 import { getMatchById, vnDateLabel, vnTime } from "@/lib/matches";
+import { PickBadge } from "@/components/pick-badge";
+import { BetDetailCard } from "@/components/bet-detail-card";
+import { LineupPitch, type TeamLineup, type PitchPlayer } from "@/components/lineup-pitch";
 
 function StatRow({
   label,
@@ -25,6 +30,59 @@ export default async function MatchPage({ params }: { params: Promise<{ id: stri
   const { id } = await params;
   const m = await getMatchById(id);
   if (!m) notFound();
+
+  // Dữ liệu của user cho trận này: pickems + kèo đã đặt.
+  const session = await auth();
+  const userId = session?.user?.id;
+  const myPick = userId
+    ? await prisma.pick.findUnique({ where: { userId_matchId: { userId, matchId: id } } })
+    : null;
+  const myBets = userId
+    ? await prisma.bet.findMany({
+        where: { userId, market: { matchId: id } },
+        orderBy: { createdAt: "desc" },
+        include: {
+          market: {
+            include: {
+              selections: true,
+              match: { include: { homeTeam: true, awayTeam: true } },
+            },
+          },
+        },
+      })
+    : [];
+
+  // Đội hình ra sân (dữ liệu cấu trúc) — để vẽ sân + chấm điểm; thiếu thì fallback text bên dưới.
+  const players = await prisma.matchPlayer.findMany({
+    where: { matchId: id },
+    orderBy: [{ isStarter: "desc" }, { order: "asc" }],
+  });
+  const hasLineup = players.length > 0;
+  const toPitch = (p: (typeof players)[number]): PitchPlayer => ({
+    name: p.name,
+    number: p.number,
+    isStarter: p.isStarter,
+    order: p.order,
+    rating: p.rating,
+    ratingSource: p.ratingSource,
+    goals: p.goals,
+    assists: p.assists,
+    yellow: p.yellow,
+    red: p.red,
+    subbedOut: p.subbedOut,
+  });
+  const homeLineup: TeamLineup = {
+    teamName: m.homeTeam?.name ?? "Đội nhà",
+    flag: m.homeTeam?.flag ?? null,
+    formation: m.homeFormation,
+    players: players.filter((p) => p.team === "HOME").map(toPitch),
+  };
+  const awayLineup: TeamLineup = {
+    teamName: m.awayTeam?.name ?? "Đội khách",
+    flag: m.awayTeam?.flag ?? null,
+    formation: m.awayFormation,
+    players: players.filter((p) => p.team === "AWAY").map(toPitch),
+  };
 
   const done = m.status === "FINISHED";
   const live = m.status === "LIVE";
@@ -70,6 +128,27 @@ export default async function MatchPage({ params }: { params: Promise<{ id: stri
 
       {m.venue && <p className="text-center text-xs text-muted-foreground">🏟️ {m.venue}</p>}
 
+      {userId && (myPick || myBets.length > 0) && (
+        <div className="space-y-3 rounded-lg border p-3">
+          <h2 className="text-center text-xs font-semibold uppercase text-muted-foreground">
+            Dự đoán &amp; kèo của tôi
+          </h2>
+          {myPick && (
+            <div className="flex items-center justify-between gap-2 rounded-lg border border-border bg-card px-3 py-2">
+              <span className="text-xs text-muted-foreground">Pickems · dự đoán 1x2</span>
+              <PickBadge pick={myPick} />
+            </div>
+          )}
+          {myBets.length > 0 && (
+            <div className="space-y-2">
+              {myBets.map((b) => (
+                <BetDetailCard key={b.id} bet={b} showMatch={false} />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {s && (
         <div className="rounded-lg border p-3">
           <h2 className="mb-1 text-center text-xs font-semibold uppercase text-muted-foreground">
@@ -83,36 +162,45 @@ export default async function MatchPage({ params }: { params: Promise<{ id: stri
         </div>
       )}
 
-      {(m.homeLineup || m.awayLineup) && (
+      {hasLineup ? (
         <div className="rounded-lg border p-3">
           <h2 className="mb-2 text-center text-xs font-semibold uppercase text-muted-foreground">
             Đội hình ra sân
           </h2>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {m.homeLineup && (
-              <div>
-                <div className="mb-1 flex items-center gap-1.5 text-sm font-medium">
-                  <span>{m.homeTeam?.flag ?? "🏳️"}</span>
-                  <span>{m.homeTeam?.name ?? "Đội nhà"}</span>
-                </div>
-                <p className="whitespace-pre-line text-xs leading-relaxed text-muted-foreground">
-                  {m.homeLineup}
-                </p>
-              </div>
-            )}
-            {m.awayLineup && (
-              <div>
-                <div className="mb-1 flex items-center gap-1.5 text-sm font-medium">
-                  <span>{m.awayTeam?.flag ?? "🏳️"}</span>
-                  <span>{m.awayTeam?.name ?? "Đội khách"}</span>
-                </div>
-                <p className="whitespace-pre-line text-xs leading-relaxed text-muted-foreground">
-                  {m.awayLineup}
-                </p>
-              </div>
-            )}
-          </div>
+          <LineupPitch home={homeLineup} away={awayLineup} />
         </div>
+      ) : (
+        (m.homeLineup || m.awayLineup) && (
+          <div className="rounded-lg border p-3">
+            <h2 className="mb-2 text-center text-xs font-semibold uppercase text-muted-foreground">
+              Đội hình ra sân
+            </h2>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {m.homeLineup && (
+                <div>
+                  <div className="mb-1 flex items-center gap-1.5 text-sm font-medium">
+                    <span>{m.homeTeam?.flag ?? "🏳️"}</span>
+                    <span>{m.homeTeam?.name ?? "Đội nhà"}</span>
+                  </div>
+                  <p className="whitespace-pre-line text-xs leading-relaxed text-muted-foreground">
+                    {m.homeLineup}
+                  </p>
+                </div>
+              )}
+              {m.awayLineup && (
+                <div>
+                  <div className="mb-1 flex items-center gap-1.5 text-sm font-medium">
+                    <span>{m.awayTeam?.flag ?? "🏳️"}</span>
+                    <span>{m.awayTeam?.name ?? "Đội khách"}</span>
+                  </div>
+                  <p className="whitespace-pre-line text-xs leading-relaxed text-muted-foreground">
+                    {m.awayLineup}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        )
       )}
 
       {m.preview && (

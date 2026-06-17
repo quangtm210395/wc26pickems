@@ -49,6 +49,21 @@ type MarketInput = {
   selections?: SelectionInput[];
 };
 
+type PlayerInput = {
+  name?: string;
+  number?: number | null;
+  isStarter?: boolean; // mặc định true (đá chính)
+  rating?: number | null; // điểm sau trận 0–10
+  ratingSource?: string | null; // vd "SofaScore"
+  goals?: number;
+  assists?: number;
+  yellow?: number;
+  red?: number;
+  subbedOut?: boolean;
+};
+// players gửi theo thứ tự: đá chính trước (thủ môn → tiền đạo theo sơ đồ), rồi dự bị.
+type LineupInput = { formation?: string | null; players?: PlayerInput[] };
+
 type Body = {
   matchExternalId?: string;
   status?: string;
@@ -60,6 +75,7 @@ type Body = {
   awayLineup?: string | null;
   stats?: StatsInput;
   markets?: MarketInput[];
+  lineups?: { home?: LineupInput; away?: LineupInput };
 };
 
 /**
@@ -109,6 +125,55 @@ export async function POST(req: Request) {
       create: { matchId: match.id, ...body.stats },
       update: { ...body.stats },
     });
+  }
+
+  // Đội hình ra sân + chấm điểm: thay TOÀN BỘ cầu thủ của side được gửi (idempotent-replace).
+  // order tự tính theo thứ tự trong mảng (đá chính riêng, dự bị riêng) → client chỉ cần gửi đúng thứ tự.
+  let playersUpserted = 0;
+  if (body.lineups) {
+    for (const side of ["home", "away"] as const) {
+      const lu = body.lineups[side];
+      if (!lu) continue;
+      const team = side === "home" ? "HOME" : "AWAY";
+
+      if (lu.formation !== undefined) {
+        await prisma.match.update({
+          where: { id: match.id },
+          data: side === "home" ? { homeFormation: lu.formation } : { awayFormation: lu.formation },
+        });
+      }
+
+      if (Array.isArray(lu.players)) {
+        await prisma.matchPlayer.deleteMany({ where: { matchId: match.id, team } });
+        let starterOrder = 0;
+        let subOrder = 0;
+        const rows: Prisma.MatchPlayerCreateManyInput[] = [];
+        for (const p of lu.players) {
+          const nm = p.name?.trim();
+          if (!nm) continue;
+          const isStarter = p.isStarter !== false;
+          rows.push({
+            matchId: match.id,
+            team,
+            name: nm,
+            number: p.number ?? null,
+            isStarter,
+            order: isStarter ? starterOrder++ : subOrder++,
+            rating: p.rating ?? null,
+            ratingSource: p.ratingSource ?? null,
+            goals: p.goals ?? 0,
+            assists: p.assists ?? 0,
+            yellow: p.yellow ?? 0,
+            red: p.red ?? 0,
+            subbedOut: p.subbedOut ?? false,
+          });
+        }
+        if (rows.length > 0) {
+          await prisma.matchPlayer.createMany({ data: rows });
+          playersUpserted += rows.length;
+        }
+      }
+    }
   }
 
   // Kèo: tạo/cập nhật market + tỉ lệ (selections). Market định danh theo (match, type, line).
@@ -211,5 +276,6 @@ export async function POST(req: Request) {
     settled,
     championPool,
     marketsUpserted,
+    playersUpserted,
   });
 }

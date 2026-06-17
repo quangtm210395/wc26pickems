@@ -5,7 +5,8 @@ import { getBalance } from "@/lib/economy";
 import { getAllMatches, groupByDay, vnTime, type MatchWithTeams } from "@/lib/matches";
 import { Card, CardContent } from "@/components/ui/card";
 import { PickButtons } from "@/components/pick-buttons";
-import type { Pick, PickChoice } from "@prisma/client";
+import { PickBadge } from "@/components/pick-badge";
+import type { Pick } from "@prisma/client";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -15,39 +16,6 @@ function isPickable(match: MatchWithTeams): boolean {
 
 function formatBalance(n: number): string {
   return n.toLocaleString("vi-VN") + "đ";
-}
-
-// ─── Pick status badge ────────────────────────────────────────────────────────
-
-function PickBadge({ pick, points }: { pick: Pick | undefined; points?: number }) {
-  if (!pick) {
-    return (
-      <span className="rounded px-1.5 py-0.5 text-[10px] text-muted-foreground">
-        Không dự đoán
-      </span>
-    );
-  }
-  const choiceLabel: Record<PickChoice, string> = { HOME: "Nhà", DRAW: "Hòa", AWAY: "Khách" };
-  if (pick.status === "WON") {
-    return (
-      <span className="flex items-center gap-1 rounded-md border border-accent/40 bg-accent/20 px-2 py-0.5 text-[10px] font-semibold text-emerald-300">
-        {choiceLabel[pick.choice]} · WON +{points ?? pick.points}đ
-      </span>
-    );
-  }
-  if (pick.status === "LOST") {
-    return (
-      <span className="rounded-md bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">
-        {choiceLabel[pick.choice]} · Thua
-      </span>
-    );
-  }
-  // PENDING
-  return (
-    <span className="rounded-md border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] text-primary">
-      {choiceLabel[pick.choice]} · Đang chờ
-    </span>
-  );
 }
 
 // ─── Match row ────────────────────────────────────────────────────────────────

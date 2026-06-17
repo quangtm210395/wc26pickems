@@ -126,8 +126,11 @@ model Match {
   preview     String? // thông tin/nhận định trước trận
   homeLineup  String? // đội hình ra sân (text, nhập qua admin ingest)
   awayLineup  String?
+  homeFormation String? // sơ đồ đội nhà (vd "4-3-3") để vẽ sân
+  awayFormation String?
   externalId  String?     @unique // id từ football-data API để sync
   stats       MatchStats?
+  players     MatchPlayer[]
   picks       Pick[]
   markets     Market[]
   posts       Post[]
@@ -152,6 +155,27 @@ model MatchStats {
   awayShots   Int?
   homePoss    Int? // % kiểm soát bóng
   awayPoss    Int?
+}
+
+// Cầu thủ ra sân của 1 trận (đá chính + dự bị) — để vẽ sơ đồ + chấm điểm sau trận.
+model MatchPlayer {
+  id           String  @id @default(cuid())
+  matchId      String
+  match        Match   @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  team         String // "HOME" | "AWAY"
+  name         String
+  number       Int?
+  isStarter    Boolean @default(true)
+  order        Int     @default(0) // đá chính: thứ tự theo sơ đồ (0=thủ môn → tiền đạo); dự bị: thứ tự ghế
+  rating       Float? // điểm sau trận 0–10
+  ratingSource String? // nguồn chấm (vd "SofaScore")
+  goals        Int     @default(0)
+  assists      Int     @default(0)
+  yellow       Int     @default(0)
+  red          Int     @default(0)
+  subbedOut    Boolean @default(false) // bị thay ra
+
+  @@index([matchId])
 }
 
 // ---------- Pickems & Ví / sổ cái (M2) ----------
