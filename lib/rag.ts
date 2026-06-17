@@ -69,6 +69,7 @@ const MARKET_TYPE_LABELS: Record<MarketType, string> = {
   CORNERS_OU: "Phạt góc",
   CARDS_OU: "Thẻ",
   CORRECT_SCORE: "Tỉ số chính xác",
+  ASIAN_HANDICAP: "Kèo chấp (châu Á)",
 };
 
 const fmtVnd = (n: number) => n.toLocaleString("vi-VN") + "đ";

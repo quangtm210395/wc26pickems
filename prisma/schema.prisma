@@ -222,6 +222,7 @@ enum MarketType {
   CORNERS_OU // phạt góc tài/xỉu
   CARDS_OU // thẻ tài/xỉu
   CORRECT_SCORE // tỉ số chính xác (selection key "H-A", có cửa "OTHER")
+  ASIAN_HANDICAP // kèo chấp châu Á (selection "HOME"/"AWAY", line = chấp của đội nhà; vd -0.5)
 }
 
 enum MarketMode {
@@ -241,6 +242,9 @@ enum BetStatus {
   WON
   LOST
   VOID
+  HALF_WON // kèo chấp 1/4: thắng nửa (nửa ăn theo odds, nửa hoàn)
+  HALF_LOST // kèo chấp 1/4: thua nửa (nửa mất, nửa hoàn)
+  PUSH // kèo chấp đúng lằn: hòa vốn, hoàn nguyên cược
 }
 
 model Market {

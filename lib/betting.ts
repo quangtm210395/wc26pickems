@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { credit } from "@/lib/economy";
-import type { MarketType } from "@prisma/client";
+import type { MarketType, BetStatus } from "@prisma/client";
 
 export const MIN_STAKE = 50;
 
@@ -54,6 +54,9 @@ export function determineMarketResult(i: ResultInput): string | null {
     case "CORRECT_SCORE":
       // Trả tỉ số thật dạng "H-A"; settleMarket sẽ map sang "OTHER" nếu không có cửa đó.
       return `${i.homeScore}-${i.awayScore}`;
+    case "ASIAN_HANDICAP":
+      // Kèo chấp settle theo TỪNG cược (win/half/push/loss) trong settleMarket, không dùng winKey.
+      return null;
   }
 }
 
@@ -65,6 +68,84 @@ export function fixedPayout(stake: number, odds: number): number {
 export function parimutuelPayout(stake: number, totalPool: number, winningPool: number): number {
   if (winningPool <= 0) return 0;
   return Math.round(stake * (totalPool / winningPool));
+}
+
+// ---------- Kèo chấp châu Á (Asian Handicap) ----------
+
+export type AhOutcome = "WIN" | "HALF_WIN" | "PUSH" | "HALF_LOSS" | "LOSS";
+
+/**
+ * Kết quả 1 cược kèo chấp châu Á.
+ * @param side          phía cược: "HOME" | "AWAY"
+ * @param homeHandicap  chấp của ĐỘI NHÀ (âm = nhà cửa trên, vd -0.5). Khách = -homeHandicap.
+ *
+ * margin = (hiệu bàn thắng theo phía cược) + (chấp theo phía cược).
+ * Vì hiệu là số nguyên và chấp ∈ {…, .25, .5, .75, nguyên}, margin luôn là bội số của 0.25,
+ * nên chỉ cần phân nhánh quanh 0: ≥0.5 thắng, .25 thắng nửa, 0 hòa vốn, -.25 thua nửa, ≤-0.5 thua.
+ */
+export function asianHandicapOutcome(
+  side: "HOME" | "AWAY",
+  homeHandicap: number,
+  homeScore: number,
+  awayScore: number,
+): AhOutcome {
+  const goalDiff = side === "HOME" ? homeScore - awayScore : awayScore - homeScore;
+  const handicap = side === "HOME" ? homeHandicap : -homeHandicap;
+  // Làm tròn về bội số 0.25 để loại sai số dấu phẩy động.
+  const margin = Math.round((goalDiff + handicap) * 4) / 4;
+  if (margin >= 0.5) return "WIN";
+  if (margin === 0.25) return "HALF_WIN";
+  if (margin === 0) return "PUSH";
+  if (margin === -0.25) return "HALF_LOSS";
+  return "LOSS"; // margin <= -0.5
+}
+
+/** Số điểm HOÀN VỀ ví (gồm cả phần cược gốc) theo kết quả kèo chấp. */
+export function asianHandicapReturn(stake: number, odds: number, outcome: AhOutcome): number {
+  switch (outcome) {
+    case "WIN":
+      return Math.round(stake * odds);
+    case "HALF_WIN":
+      // Nửa cược ăn theo odds, nửa cược hoàn lại.
+      return Math.round((stake / 2) * odds) + Math.round(stake / 2);
+    case "PUSH":
+      return stake;
+    case "HALF_LOSS":
+      return Math.round(stake / 2);
+    case "LOSS":
+      return 0;
+  }
+}
+
+/** Map kết quả kèo chấp → BetStatus lưu DB. */
+export function ahOutcomeToStatus(outcome: AhOutcome): BetStatus {
+  switch (outcome) {
+    case "WIN":
+      return "WON";
+    case "HALF_WIN":
+      return "HALF_WON";
+    case "PUSH":
+      return "PUSH";
+    case "HALF_LOSS":
+      return "HALF_LOST";
+    case "LOSS":
+      return "LOST";
+  }
+}
+
+function ahSettleNote(outcome: AhOutcome): string {
+  switch (outcome) {
+    case "WIN":
+      return "Thắng kèo chấp";
+    case "HALF_WIN":
+      return "Thắng nửa kèo chấp";
+    case "PUSH":
+      return "Hòa vốn kèo chấp (hoàn cược)";
+    case "HALF_LOSS":
+      return "Thua nửa kèo chấp (hoàn nửa)";
+    case "LOSS":
+      return "Thua kèo chấp";
+  }
 }
 
 // ---------- DB ops ----------
@@ -125,6 +206,40 @@ export async function settleMarket(marketId: string): Promise<{ settled: number;
     }
     const match = market.match;
     if (match.status !== "FINISHED") return { settled: 0, paid: 0 };
+    if (match.homeScore == null || match.awayScore == null) return { settled: 0, paid: 0 };
+
+    // ----- Kèo chấp châu Á: settle theo TỪNG cược (win/half/push/loss + hoàn tiền) -----
+    if (market.type === "ASIAN_HANDICAP") {
+      if (market.line == null) return { settled: 0, paid: 0 };
+      const bets = await tx.bet.findMany({ where: { marketId, status: "PENDING" } });
+      let paid = 0;
+      for (const b of bets) {
+        const side = b.selectionKey === "AWAY" ? "AWAY" : "HOME";
+        const outcome = asianHandicapOutcome(side, market.line, match.homeScore, match.awayScore);
+        const ret = asianHandicapReturn(b.stake, b.oddsAtBet ?? 2.0, outcome);
+        await tx.bet.update({
+          where: { id: b.id },
+          data: { status: ahOutcomeToStatus(outcome), payout: ret },
+        });
+        if (ret > 0) {
+          // Cộng cả phần thắng lẫn phần hoàn (push/half) qua BET_WIN — note phân biệt loại.
+          await credit(tx, {
+            userId: b.userId,
+            type: "BET_WIN",
+            amount: ret,
+            refType: "market",
+            refId: marketId,
+            note: ahSettleNote(outcome),
+          });
+          paid += ret;
+        }
+      }
+      await tx.market.update({
+        where: { id: marketId },
+        data: { status: "SETTLED", result: `${match.homeScore}-${match.awayScore}` },
+      });
+      return { settled: bets.length, paid };
+    }
 
     const result = determineMarketResult({
       type: market.type,

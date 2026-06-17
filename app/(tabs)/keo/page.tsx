@@ -19,6 +19,7 @@ const MARKET_TYPE_LABEL: Record<MarketType, string> = {
   CORNERS_OU: "Phạt góc",
   CARDS_OU: "Thẻ",
   CORRECT_SCORE: "Tỉ số chính xác",
+  ASIAN_HANDICAP: "Kèo chấp (châu Á)",
 };
 
 function BetStatusBadge({
@@ -32,10 +33,25 @@ function BetStatusBadge({
   payout: number | null;
   oddsAtBet: number | null;
 }) {
-  if (status === "WON") {
+  const amt = (payout ?? 0).toLocaleString("vi-VN");
+  if (status === "WON" || status === "HALF_WON") {
     return (
       <span className="rounded-md border border-accent/40 bg-accent/20 px-2 py-0.5 font-display text-[10px] font-semibold tabular-nums text-emerald-300">
-        +{(payout ?? 0).toLocaleString("vi-VN")}đ
+        {status === "HALF_WON" && "½ "}+{amt}đ
+      </span>
+    );
+  }
+  if (status === "PUSH" || status === "VOID") {
+    return (
+      <span className="rounded-md border border-border bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">
+        Hòa vốn · hoàn {amt}đ
+      </span>
+    );
+  }
+  if (status === "HALF_LOST") {
+    return (
+      <span className="rounded-md bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">
+        Thua nửa · hoàn {amt}đ
       </span>
     );
   }

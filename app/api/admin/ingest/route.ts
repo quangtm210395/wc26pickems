@@ -22,6 +22,7 @@ const MARKET_TYPES: MarketType[] = [
   "CORNERS_OU",
   "CARDS_OU",
   "CORRECT_SCORE",
+  "ASIAN_HANDICAP",
 ];
 const MARKET_MODES: MarketMode[] = ["FIXED", "PARIMUTUEL"];
 const MARKET_STATUSES: MarketStatus[] = ["OPEN", "LOCKED", "SETTLED", "VOID"];
