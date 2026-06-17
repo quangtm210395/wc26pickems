@@ -1,10 +1,18 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { auth } from "@/auth";
-import { getPostBySlug, POST_TYPE_LABEL } from "@/lib/posts";
+import {
+  getPostBySlug,
+  POST_TYPE_LABEL,
+  snippetFromMarkdown,
+  postOgImagePath,
+} from "@/lib/posts";
 import { vnDateLabel } from "@/lib/matches";
+import { SITE_NAME } from "@/lib/site";
+import { ArticleShareButton } from "@/components/article-share-button";
 import type { Post } from "@prisma/client";
 
 // ─── Badge colors per type ────────────────────────────────────────────────────
@@ -15,6 +23,50 @@ const TYPE_COLOR: Record<Post["type"], string> = {
   ANALYSIS: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
   TIP: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300",
 };
+
+// ─── Metadata (SEO + preview khi share lên chat) ──────────────────────────────
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const post = await getPostBySlug(slug);
+
+  // Bài không tồn tại / còn nháp → không lộ nội dung, không cho index.
+  if (!post || post.status !== "PUBLISHED") {
+    return { title: "Tin tức", robots: { index: false, follow: false } };
+  }
+
+  const title = post.title;
+  const description = snippetFromMarkdown(post.body, 160);
+  const url = `/tin/${post.slug}`;
+  const image = postOgImagePath(post);
+  const publishedTime = (post.publishedAt ?? post.createdAt).toISOString();
+
+  return {
+    title,
+    description,
+    alternates: { canonical: url },
+    openGraph: {
+      type: "article",
+      title,
+      description,
+      url,
+      siteName: SITE_NAME,
+      locale: "vi_VN",
+      publishedTime,
+      images: [{ url: image, width: 1200, height: 630, alt: title }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [image],
+    },
+  };
+}
 
 // ─── Page ────────────────────────────────────────────────────────────────────
 
@@ -39,13 +91,16 @@ export default async function PostPage({
 
   return (
     <article className="space-y-4 pb-10">
-      {/* Back link */}
-      <Link
-        href="/tin"
-        className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground active:opacity-70"
-      >
-        ← Tin tức
-      </Link>
+      {/* Back link + nút chia sẻ */}
+      <div className="flex items-center justify-between gap-2">
+        <Link
+          href="/tin"
+          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground active:opacity-70"
+        >
+          ← Tin tức
+        </Link>
+        <ArticleShareButton slug={post.slug} title={post.title} />
+      </div>
 
       {/* Type badge */}
       <span

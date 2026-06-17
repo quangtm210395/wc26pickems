@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 import type { Post } from "@prisma/client";
 
@@ -25,9 +26,12 @@ export async function getDraftPosts(): Promise<Post[]> {
   });
 }
 
-export async function getPostBySlug(slug: string): Promise<Post | null> {
-  return prisma.post.findUnique({ where: { slug } });
-}
+// Bọc `cache()` để `generateMetadata` và page component không query DB 2 lần trong cùng 1 request.
+export const getPostBySlug = cache(
+  async (slug: string): Promise<Post | null> => {
+    return prisma.post.findUnique({ where: { slug } });
+  },
+);
 
 /** Lấy ~120 ký tự snippet từ markdown, loại bỏ các ký tự định dạng thô. */
 export function snippetFromMarkdown(body: string, maxLen = 120): string {
@@ -42,4 +46,17 @@ export function snippetFromMarkdown(body: string, maxLen = 120): string {
     .replace(/\n+/g, " ")
     .trim();
   return stripped.length > maxLen ? stripped.slice(0, maxLen) + "…" : stripped;
+}
+
+/**
+ * Đường dẫn (tương đối) tới ảnh OG card cho 1 bài viết.
+ * Trả về relative path — sẽ được `metadataBase` (root layout) ghép thành URL tuyệt đối.
+ */
+export function postOgImagePath(post: Pick<Post, "title" | "type">): string {
+  const params = new URLSearchParams({
+    kind: "post",
+    title: post.title,
+    type: POST_TYPE_LABEL[post.type],
+  });
+  return `/api/og?${params.toString()}`;
 }

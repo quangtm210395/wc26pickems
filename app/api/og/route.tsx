@@ -66,6 +66,36 @@ export async function GET(req: NextRequest) {
     );
   }
 
+  // Biến thể: ảnh share cho BÀI VIẾT tin tức (nhãn loại + tiêu đề).
+  if (searchParams.get("kind") === "post") {
+    const title = searchParams.get("title") ?? "Tin World Cup 2026";
+    const typeLabel = searchParams.get("type") ?? "Tin tức";
+    return new ImageResponse(
+      (
+        <Frame>
+          <div
+            style={{
+              display: "flex",
+              padding: "6px 20px",
+              borderRadius: "999px",
+              background: "rgba(251,191,36,0.15)",
+              border: "1px solid rgba(251,191,36,0.4)",
+              marginBottom: "28px",
+            }}
+          >
+            <span style={{ fontSize: "22px", color: "#fbbf24", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+              {typeLabel}
+            </span>
+          </div>
+          <div style={{ fontSize: "60px", fontWeight: 800, color: "#ffffff", textAlign: "center", maxWidth: "1000px", lineHeight: 1.18 }}>
+            {title.length > 120 ? title.slice(0, 120) + "…" : title}
+          </div>
+        </Frame>
+      ),
+      { width: 1200, height: 630 },
+    );
+  }
+
   const name = searchParams.get("name") ?? "Người chơi";
   const rank = searchParams.get("rank") ?? "?";
   const points = searchParams.get("points") ?? "0";

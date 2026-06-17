@@ -8,6 +8,9 @@ const schema = z.object({
       message: "DATABASE_URL phải là postgres connection string",
     }),
   DIRECT_URL: z.string().optional(),
+  // URL gốc của site cho OG/preview (vd "https://duongdenngaivang.com").
+  // Để trống → tự lấy domain production Vercel; dev → localhost. Xem lib/site.ts.
+  NEXT_PUBLIC_SITE_URL: z.string().optional(),
   AUTH_SECRET: z.string().min(16, "AUTH_SECRET tối thiểu 16 ký tự"),
   // optional ở M0 — chỉ cần khi bật provider thật:
   AUTH_GOOGLE_ID: z.string().optional(),

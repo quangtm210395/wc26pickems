@@ -4,6 +4,7 @@ import "./globals.css";
 import { AppHeader } from "@/components/app-header";
 import { BottomNav } from "@/components/bottom-nav";
 import Link from "next/link";
+import { siteUrl, SITE_NAME, SITE_DESCRIPTION } from "@/lib/site";
 
 // Body font — full Vietnamese support, clean & legible on mobile.
 const beVietnamPro = Be_Vietnam_Pro({
@@ -23,8 +24,22 @@ const oswald = Oswald({
 });
 
 export const metadata: Metadata = {
-  title: "Đường Đến Ngai Vàng World Cup 2026",
-  description: "Sân chơi dự đoán & soi kèo World Cup 2026 cho anh em bạn bè. Điểm ảo, chơi cho vui.",
+  // Bắt buộc cho OG: scraper chat cần URL tuyệt đối; nếu không có, ảnh/link OG sẽ trỏ về localhost.
+  metadataBase: new URL(siteUrl()),
+  title: SITE_NAME,
+  description: SITE_DESCRIPTION,
+  openGraph: {
+    type: "website",
+    siteName: SITE_NAME,
+    title: SITE_NAME,
+    description: SITE_DESCRIPTION,
+    locale: "vi_VN",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: SITE_NAME,
+    description: SITE_DESCRIPTION,
+  },
 };
 
 export const viewport: Viewport = {
