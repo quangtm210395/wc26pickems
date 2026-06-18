@@ -16,7 +16,11 @@ function formatBalance(n: number): string {
 
 // ─── Page ────────────────────────────────────────────────────────────────────
 
-export default async function KeoPage() {
+export default async function KeoPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string }>;
+}) {
   // Kèo tạm ẩn: tỉ lệ hiện là mock. Bật lại bằng env BETTING_ENABLED="true"
   // khi đã có dữ liệu/odds thật.
   if (process.env.BETTING_ENABLED !== "true") {
@@ -130,6 +134,13 @@ export default async function KeoPage() {
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([key, matches]) => ({ key, label: vnDateLabel(matches[0].kickoff), matches }));
 
+  // Tách kèo ĐANG CHỜ vs LỊCH SỬ (đã xử lý) cho đỡ rối; mặc định xem kèo đang đặt.
+  const pendingBets = userBets.filter((b) => b.status === "PENDING");
+  const settledBets = userBets.filter((b) => b.status !== "PENDING");
+  const { tab } = await searchParams;
+  const betTab = tab === "lich-su" ? "lich-su" : "dang-dat";
+  const shownBets = betTab === "lich-su" ? settledBets : pendingBets;
+
   return (
     <div className="space-y-4">
       {/* Header card: balance */}
@@ -160,17 +171,45 @@ export default async function KeoPage() {
         </Card>
       </Link>
 
-      {/* Section: My bets */}
+      {/* Section: My bets — tách Đang đặt / Lịch sử cho đỡ rối */}
       {userBets.length > 0 && (
         <section className="space-y-2">
           <h2 className="section-heading sticky top-14 z-10 bg-background/90 py-1.5 backdrop-blur">
             Kèo của tôi
           </h2>
-          <div className="space-y-2">
-            {userBets.map((bet) => (
-              <BetDetailCard key={bet.id} bet={bet} />
-            ))}
+          <div className="inline-flex gap-1 rounded-xl border border-border bg-card p-0.5 text-xs">
+            <Link
+              href="/keo?tab=dang-dat"
+              className={`inline-flex min-h-[40px] items-center justify-center rounded-lg px-3 font-display font-medium uppercase tracking-wide transition-colors ${
+                betTab === "dang-dat"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-primary/5"
+              }`}
+            >
+              Đang đặt ({pendingBets.length})
+            </Link>
+            <Link
+              href="/keo?tab=lich-su"
+              className={`inline-flex min-h-[40px] items-center justify-center rounded-lg px-3 font-display font-medium uppercase tracking-wide transition-colors ${
+                betTab === "lich-su"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-primary/5"
+              }`}
+            >
+              Lịch sử ({settledBets.length})
+            </Link>
           </div>
+          {shownBets.length === 0 ? (
+            <p className="py-2 text-sm text-muted-foreground">
+              {betTab === "lich-su" ? "Chưa có kèo đã xử lý." : "Chưa có kèo đang chờ."}
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {shownBets.map((bet) => (
+                <BetDetailCard key={bet.id} bet={bet} />
+              ))}
+            </div>
+          )}
         </section>
       )}
 

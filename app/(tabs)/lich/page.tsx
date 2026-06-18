@@ -9,6 +9,8 @@ import {
   vnDateLabel,
 } from "@/lib/matches";
 import { MatchCard } from "@/components/match-card";
+import { StandingsTable } from "@/components/standings-table";
+import { computeGroupStandings } from "@/lib/standings";
 
 // ─── Chip nav ───────────────────────────────────────────────────────────────
 
@@ -173,12 +175,25 @@ async function GroupView() {
   if (groupMatches.length === 0) {
     return <p className="text-sm text-muted-foreground">Chưa có trận vòng bảng nào.</p>;
   }
-  const sections = groupByGroup(groupMatches).map((g) => ({
-    id: g.name,
-    title: `Bảng ${g.name}`,
-    matches: g.matches,
-  }));
-  return <SectionList sections={sections} />;
+  const groups = groupByGroup(groupMatches);
+  return (
+    <div className="space-y-6">
+      {groups.map((g) => (
+        <section key={g.name} className="space-y-2">
+          <h2 className="sticky top-14 z-10 flex items-center gap-2 bg-background/90 py-1.5 font-display text-sm font-semibold uppercase tracking-wide text-foreground/80 backdrop-blur">
+            <span className="h-3.5 w-0.5 rounded-full bg-primary" />
+            Bảng {g.name}
+          </h2>
+          <StandingsTable rows={computeGroupStandings(g.matches)} />
+          <div className="space-y-2 pt-1">
+            {g.matches.map((m) => (
+              <MatchCard key={m.id} match={m} />
+            ))}
+          </div>
+        </section>
+      ))}
+    </div>
+  );
 }
 
 async function BracketView() {
