@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { credit } from "@/lib/economy";
-import type { MarketType, BetStatus } from "@prisma/client";
+import type { MarketType, BetStatus, MarketStatus } from "@prisma/client";
 
 export const MIN_STAKE = 50;
 
@@ -148,6 +148,16 @@ function ahSettleNote(outcome: AhOutcome): string {
   }
 }
 
+/** Kèo còn hủy được không: chưa settle, market còn mở, và trận chưa tới giờ đá. */
+export function canCancelBet(
+  betStatus: BetStatus,
+  marketStatus: MarketStatus,
+  matchKickoff: Date,
+  now: Date,
+): boolean {
+  return betStatus === "PENDING" && marketStatus === "OPEN" && matchKickoff > now;
+}
+
 // ---------- DB ops ----------
 
 export async function placeBet(
@@ -191,6 +201,29 @@ export async function placeBet(
         status: "PENDING",
       },
     });
+  });
+}
+
+/** Hủy 1 kèo đang chờ (chưa khóa) của user → hoàn cược + đánh dấu VOID. Idempotent qua check PENDING. */
+export async function cancelBet(userId: string, betId: string) {
+  return prisma.$transaction(async (tx) => {
+    const bet = await tx.bet.findUnique({
+      where: { id: betId },
+      include: { market: { include: { match: true } } },
+    });
+    if (!bet || bet.userId !== userId) throw new Error("Không tìm thấy kèo");
+    if (!canCancelBet(bet.status, bet.market.status, bet.market.match.kickoff, new Date())) {
+      throw new Error("Kèo đã khóa hoặc đã xử lý, không hủy được");
+    }
+    await credit(tx, {
+      userId,
+      type: "BET_REFUND",
+      amount: bet.stake,
+      refType: "market",
+      refId: bet.marketId,
+      note: "Hủy kèo — hoàn cược",
+    });
+    return tx.bet.update({ where: { id: bet.id }, data: { status: "VOID", payout: bet.stake } });
   });
 }
 

@@ -6,6 +6,7 @@ import {
   asianHandicapOutcome,
   asianHandicapReturn,
   ahOutcomeToStatus,
+  canCancelBet,
   type ResultInput,
 } from "./betting";
 
@@ -140,4 +141,23 @@ describe("ahOutcomeToStatus", () => {
   it("PUSH → PUSH", () => expect(ahOutcomeToStatus("PUSH")).toBe("PUSH"));
   it("HALF_LOSS → HALF_LOST", () => expect(ahOutcomeToStatus("HALF_LOSS")).toBe("HALF_LOST"));
   it("LOSS → LOST", () => expect(ahOutcomeToStatus("LOSS")).toBe("LOST"));
+});
+
+describe("canCancelBet", () => {
+  const now = new Date("2025-01-01T00:00:00Z");
+  const future = new Date("2030-01-01T00:00:00Z");
+  const past = new Date("2020-01-01T00:00:00Z");
+
+  it("PENDING + market OPEN + chưa tới giờ → hủy được", () =>
+    expect(canCancelBet("PENDING", "OPEN", future, now)).toBe(true));
+  it("đã tới giờ đá (kickoff ≤ now) → không hủy", () =>
+    expect(canCancelBet("PENDING", "OPEN", past, now)).toBe(false));
+  it("market đã LOCKED → không hủy", () =>
+    expect(canCancelBet("PENDING", "LOCKED", future, now)).toBe(false));
+  it("market đã SETTLED → không hủy", () =>
+    expect(canCancelBet("PENDING", "SETTLED", future, now)).toBe(false));
+  it("kèo đã settle (WON) → không hủy", () =>
+    expect(canCancelBet("WON", "OPEN", future, now)).toBe(false));
+  it("kèo đã VOID → không hủy", () =>
+    expect(canCancelBet("VOID", "OPEN", future, now)).toBe(false));
 });

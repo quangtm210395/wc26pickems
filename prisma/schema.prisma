@@ -198,6 +198,7 @@ enum TxType {
   DRIP // điểm hằng ngày
   BET_STAKE // đặt cược (trừ)
   BET_WIN // thắng cược (cộng)
+  BET_REFUND // hoàn cược khi hủy kèo chưa khóa (cộng)
   LOAN // vay
   REPAY // trả nợ + lãi
   SHARE // (cũ) nạp qua share MXH — đã thay bằng referral

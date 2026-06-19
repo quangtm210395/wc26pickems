@@ -18,6 +18,7 @@ const TX_LABELS: Record<TxType, string> = {
   DRIP: "Điểm hằng ngày",
   BET_STAKE: "Đặt cược",
   BET_WIN: "Thắng kèo",
+  BET_REFUND: "Hoàn cược (hủy kèo)",
   LOAN: "Vay",
   REPAY: "Trả nợ",
   SHARE: "Chia sẻ MXH",

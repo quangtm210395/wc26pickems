@@ -1,7 +1,9 @@
 import Link from "next/link";
 import type { Bet, BetStatus, Market, MarketSelection, Match, Team } from "@prisma/client";
 import { MARKET_TYPE_LABEL, selectionLabel, potentialReturn } from "@/lib/bet-display";
+import { canCancelBet } from "@/lib/betting";
 import { vnTime, vnDateLabel } from "@/lib/matches";
+import { CancelBetButton } from "@/components/cancel-bet-button";
 
 export type BetCardData = Bet & {
   market: Market & {
@@ -75,6 +77,7 @@ export function BetDetailCard({
   const scored = match.status === "FINISHED" || match.status === "LIVE";
   const selLabel = selectionLabel(bet.selectionKey, market.selections);
   const potential = potentialReturn(bet.stake, bet.oddsAtBet);
+  const canCancel = canCancelBet(bet.status, market.status, match.kickoff, new Date());
 
   return (
     <div className="space-y-2 rounded-xl border border-border bg-card p-3">
@@ -124,6 +127,12 @@ export function BetDetailCard({
           {vnDateLabel(bet.createdAt)} · {vnTime(bet.createdAt)}
         </span>
       </div>
+
+      {canCancel && (
+        <div className="flex justify-end border-t border-border/40 pt-2">
+          <CancelBetButton betId={bet.id} />
+        </div>
+      )}
     </div>
   );
 }
