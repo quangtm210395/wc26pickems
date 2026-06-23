@@ -89,6 +89,33 @@ export function groupByGroup(matches: MatchWithTeams[]): GroupBucket[] {
     .map(([name, ms]) => ({ name, matches: ms }));
 }
 
+/**
+ * Trận "tâm điểm" để ghim đầu trang Lịch: đang LIVE + sắp đá (trong cửa sổ giờ) + vừa kết thúc.
+ * Thứ tự: live → sắp đá (gần giờ nhất trước) → vừa xong (mới nhất trước). Generic để giữ nguyên kiểu trận.
+ */
+export function selectPinnedMatches<T extends { status: string; kickoff: Date }>(
+  matches: T[],
+  now: Date,
+  opts: { windowHours?: number; upcomingLimit?: number; finishedLimit?: number } = {},
+): T[] {
+  const { windowHours = 24, upcomingLimit = 4, finishedLimit = 4 } = opts;
+  const span = windowHours * 3600 * 1000;
+  const t = (m: T) => m.kickoff.getTime();
+  const nowMs = now.getTime();
+
+  const live = matches.filter((m) => m.status === "LIVE").sort((a, b) => t(a) - t(b));
+  const upcoming = matches
+    .filter((m) => m.status === "SCHEDULED" && t(m) > nowMs && t(m) <= nowMs + span)
+    .sort((a, b) => t(a) - t(b))
+    .slice(0, upcomingLimit);
+  const finished = matches
+    .filter((m) => m.status === "FINISHED" && t(m) <= nowMs && t(m) >= nowMs - span)
+    .sort((a, b) => t(b) - t(a))
+    .slice(0, finishedLimit);
+
+  return [...live, ...upcoming, ...finished];
+}
+
 // ---------- Knockout helpers ----------
 
 export async function getKnockoutMatches(): Promise<MatchWithTeams[]> {

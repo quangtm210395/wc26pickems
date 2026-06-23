@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { groupByDay, groupByGroup, groupByStage, type MatchWithTeams } from "./matches";
+import {
+  groupByDay,
+  groupByGroup,
+  groupByStage,
+  selectPinnedMatches,
+  type MatchWithTeams,
+} from "./matches";
 
 function fakeMatch(id: string, kickoff: string, groupName: string): MatchWithTeams {
   return {
@@ -107,5 +113,65 @@ describe("groupByStage", () => {
     const buckets = groupByStage(ms);
     expect(buckets).toHaveLength(1);
     expect(buckets[0].matches).toHaveLength(2);
+  });
+});
+
+describe("selectPinnedMatches", () => {
+  const now = new Date("2026-06-17T12:00:00Z");
+  const pm = (id: string, status: string, kickoff: string) =>
+    ({ ...fakeMatch(id, kickoff, "A"), status }) as MatchWithTeams;
+
+  it("pin trận đang LIVE", () => {
+    const r = selectPinnedMatches([pm("l", "LIVE", "2026-06-17T11:00:00Z")], now);
+    expect(r.map((m) => m.id)).toEqual(["l"]);
+  });
+
+  it("pin trận sắp đá trong cửa sổ — gần giờ nhất trước", () => {
+    const r = selectPinnedMatches(
+      [pm("u2", "SCHEDULED", "2026-06-17T20:00:00Z"), pm("u1", "SCHEDULED", "2026-06-17T15:00:00Z")],
+      now,
+    );
+    expect(r.map((m) => m.id)).toEqual(["u1", "u2"]);
+  });
+
+  it("bỏ trận sắp đá ngoài cửa sổ (còn quá lâu)", () => {
+    const r = selectPinnedMatches([pm("far", "SCHEDULED", "2026-06-25T12:00:00Z")], now, {
+      windowHours: 24,
+    });
+    expect(r).toHaveLength(0);
+  });
+
+  it("pin trận vừa xong gần đây — mới nhất trước", () => {
+    const r = selectPinnedMatches(
+      [pm("old", "FINISHED", "2026-06-17T02:00:00Z"), pm("new", "FINISHED", "2026-06-17T09:00:00Z")],
+      now,
+    );
+    expect(r.map((m) => m.id)).toEqual(["new", "old"]);
+  });
+
+  it("bỏ trận đã xong quá lâu (ngoài cửa sổ)", () => {
+    const r = selectPinnedMatches([pm("o", "FINISHED", "2026-06-10T12:00:00Z")], now, {
+      windowHours: 24,
+    });
+    expect(r).toHaveLength(0);
+  });
+
+  it("thứ tự: live → sắp đá → vừa xong", () => {
+    const r = selectPinnedMatches(
+      [
+        pm("f", "FINISHED", "2026-06-17T09:00:00Z"),
+        pm("u", "SCHEDULED", "2026-06-17T15:00:00Z"),
+        pm("l", "LIVE", "2026-06-17T11:30:00Z"),
+      ],
+      now,
+    );
+    expect(r.map((m) => m.id)).toEqual(["l", "u", "f"]);
+  });
+
+  it("giới hạn số trận sắp đá", () => {
+    const ups = Array.from({ length: 6 }, (_, i) =>
+      pm(`u${i}`, "SCHEDULED", `2026-06-17T${13 + i}:00:00Z`),
+    );
+    expect(selectPinnedMatches(ups, now, { upcomingLimit: 3 })).toHaveLength(3);
   });
 });

@@ -5,6 +5,7 @@ import {
   groupByDay,
   groupByGroup,
   groupByStage,
+  selectPinnedMatches,
   vnDateKey,
   vnDateLabel,
 } from "@/lib/matches";
@@ -161,12 +162,30 @@ async function DayView() {
   if (matches.length === 0) {
     return <p className="text-sm text-muted-foreground">Chưa có trận nào. Chạy `npm run db:seed`.</p>;
   }
+  const pinned = selectPinnedMatches(matches, new Date());
   const sections = groupByDay(matches).map((d) => ({
     id: d.key,
     title: d.label,
     matches: d.matches,
   }));
-  return <SectionList sections={sections} />;
+  return (
+    <div className="space-y-5">
+      {pinned.length > 0 && (
+        <section className="space-y-2">
+          <h2 className="sticky top-14 z-10 flex items-center gap-2 bg-background/90 py-1.5 font-display text-sm font-semibold uppercase tracking-wide text-foreground/80 backdrop-blur">
+            <span className="h-3.5 w-0.5 rounded-full bg-primary" />
+            🔥 Tâm điểm
+          </h2>
+          <div className="space-y-2">
+            {pinned.map((m) => (
+              <MatchCard key={`pin-${m.id}`} match={m} />
+            ))}
+          </div>
+        </section>
+      )}
+      <SectionList sections={sections} />
+    </div>
+  );
 }
 
 async function GroupView() {
