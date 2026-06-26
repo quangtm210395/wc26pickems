@@ -98,7 +98,8 @@ export function selectPinnedMatches<T extends { status: string; kickoff: Date }>
   now: Date,
   opts: { windowHours?: number; upcomingLimit?: number; finishedLimit?: number } = {},
 ): T[] {
-  const { windowHours = 24, upcomingLimit = 4, finishedLimit = 4 } = opts;
+  // Default cao (8) để phủ đủ slate 1 ngày — vòng bảng lượt cuối đá tới 6 trận/ngày (2 trận/bảng × 3 bảng).
+  const { windowHours = 24, upcomingLimit = 8, finishedLimit = 8 } = opts;
   const span = windowHours * 3600 * 1000;
   const t = (m: T) => m.kickoff.getTime();
   const nowMs = now.getTime();

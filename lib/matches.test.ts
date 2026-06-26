@@ -168,10 +168,24 @@ describe("selectPinnedMatches", () => {
     expect(r.map((m) => m.id)).toEqual(["l", "u", "f"]);
   });
 
-  it("giới hạn số trận sắp đá", () => {
+  it("giới hạn số trận sắp đá (khi truyền opts)", () => {
     const ups = Array.from({ length: 6 }, (_, i) =>
       pm(`u${i}`, "SCHEDULED", `2026-06-17T${13 + i}:00:00Z`),
     );
     expect(selectPinnedMatches(ups, now, { upcomingLimit: 3 })).toHaveLength(3);
+  });
+
+  it("mặc định ghim đủ slate 1 ngày — không cắt còn 4 (round 6 trận/ngày)", () => {
+    const ups = Array.from({ length: 6 }, (_, i) =>
+      pm(`u${i}`, "SCHEDULED", `2026-06-17T${13 + i}:00:00Z`),
+    );
+    expect(selectPinnedMatches(ups, now)).toHaveLength(6);
+  });
+
+  it("mặc định ghim đủ trận vừa xong trong ngày (≥6)", () => {
+    const fs = Array.from({ length: 6 }, (_, i) =>
+      pm(`f${i}`, "FINISHED", `2026-06-17T0${i}:00:00Z`),
+    );
+    expect(selectPinnedMatches(fs, now)).toHaveLength(6);
   });
 });
