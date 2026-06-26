@@ -4,9 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { getBalance } from "@/lib/economy";
 import { vnTime, vnDateKey, vnDateLabel } from "@/lib/matches";
 import { Card, CardContent } from "@/components/ui/card";
-import { BetButtons } from "@/components/bet-buttons";
+import { MatchMarkets } from "@/components/match-markets";
 import { BetDetailCard } from "@/components/bet-detail-card";
-import { MARKET_TYPE_LABEL } from "@/lib/bet-display";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -254,26 +253,7 @@ export default async function KeoPage({
                   </div>
 
                   {/* Markets */}
-                  <div className="space-y-2">
-                    {match.markets.map((market) => (
-                      <div key={market.id}>
-                        <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-                          {MARKET_TYPE_LABEL[market.type]}
-                          {market.line != null && (
-                            <span className="ml-1 text-muted-foreground">({market.line})</span>
-                          )}
-                        </p>
-                        <BetButtons
-                          marketId={market.id}
-                          selections={market.selections.map((s) => ({
-                            key: s.key,
-                            label: s.label,
-                            odds: s.odds,
-                          }))}
-                        />
-                      </div>
-                    ))}
-                  </div>
+                  <MatchMarkets markets={match.markets} />
                 </div>
               ))}
             </section>

@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { getMatchById, vnDateLabel, vnTime } from "@/lib/matches";
 import { PickBadge } from "@/components/pick-badge";
 import { BetDetailCard } from "@/components/bet-detail-card";
+import { MatchMarkets } from "@/components/match-markets";
 import { LineupPitch, type TeamLineup, type PitchPlayer } from "@/components/lineup-pitch";
 
 function StatRow({
@@ -49,6 +50,16 @@ export default async function MatchPage({ params }: { params: Promise<{ id: stri
             },
           },
         },
+      })
+    : [];
+
+  // Kèo đang mở của trận này — cho đặt cược ngay trong trang trận (gate bằng BETTING_ENABLED như tab Kèo).
+  const bettingOn = process.env.BETTING_ENABLED === "true";
+  const openMarkets = bettingOn
+    ? await prisma.market.findMany({
+        where: { matchId: id, status: "OPEN" },
+        include: { selections: true },
+        orderBy: { type: "asc" },
       })
     : [];
 
@@ -147,6 +158,24 @@ export default async function MatchPage({ params }: { params: Promise<{ id: stri
       </div>
 
       {m.venue && <p className="text-center text-xs text-muted-foreground">🏟️ {m.venue}</p>}
+
+      {bettingOn && openMarkets.length > 0 && (
+        <div className="rounded-lg border p-3">
+          <h2 className="mb-2 text-center text-xs font-semibold uppercase text-muted-foreground">
+            🎲 Kèo trận này
+          </h2>
+          {userId ? (
+            <MatchMarkets markets={openMarkets} />
+          ) : (
+            <Link
+              href="/login"
+              className="flex min-h-[44px] items-center justify-center rounded-lg bg-primary/10 text-sm font-medium text-primary transition-colors hover:bg-primary/15"
+            >
+              Đăng nhập để đặt kèo trận này →
+            </Link>
+          )}
+        </div>
+      )}
 
       {userId && (myPick || myBets.length > 0) && (
         <div className="space-y-3 rounded-lg border p-3">

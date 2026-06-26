@@ -8,6 +8,7 @@ export async function placeBetAction(marketId: string, selectionKey: string, sta
   if (!session?.user?.id) throw new Error("Chưa đăng nhập");
   await placeBet(session.user.id, marketId, selectionKey, stake);
   revalidatePath("/keo");
+  revalidatePath("/match/[id]", "page"); // cập nhật "kèo của tôi" khi đặt từ trang chi tiết trận
 }
 
 export async function cancelBetAction(betId: string) {
@@ -16,4 +17,5 @@ export async function cancelBetAction(betId: string) {
   await cancelBet(session.user.id, betId);
   revalidatePath("/keo");
   revalidatePath("/vi");
+  revalidatePath("/match/[id]", "page");
 }
