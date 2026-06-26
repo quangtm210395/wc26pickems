@@ -74,6 +74,49 @@ const MARKET_TYPE_LABELS: Record<MarketType, string> = {
 
 const fmtVnd = (n: number) => n.toLocaleString("vi-VN") + "đ";
 
+export type MarketForContext = {
+  matchId: string;
+  type: MarketType;
+  line: number | null;
+  selections: { label: string; odds: number }[];
+  match: { kickoff: Date; homeTeam: { name: string } | null; awayTeam: { name: string } | null };
+};
+
+/** Gom kèo theo trận, in tỉ lệ từng cửa — cho bot phân tích / giả định kịch bản. Logic thuần, test được. */
+export function formatMarketsForContext(markets: MarketForContext[]): string {
+  if (markets.length === 0) return "(chưa có kèo/tỉ lệ nào đang mở)";
+  const byMatch = new Map<string, MarketForContext[]>();
+  for (const mk of markets) {
+    const arr = byMatch.get(mk.matchId);
+    if (arr) arr.push(mk);
+    else byMatch.set(mk.matchId, [mk]);
+  }
+  const blocks: string[] = [];
+  for (const mks of byMatch.values()) {
+    const mt = mks[0].match;
+    const [, mo, d] = vnDateKey(mt.kickoff).split("-");
+    const when = `${d}/${mo} ${vnTime(mt.kickoff)}`;
+    const head = `[${when} VN] ${mt.homeTeam?.name ?? "?"} vs ${mt.awayTeam?.name ?? "?"}:`;
+    const lines = mks.map((mk) => {
+      const label = MARKET_TYPE_LABELS[mk.type] + (mk.line != null ? ` (${mk.line})` : "");
+      const sels = mk.selections.map((s) => `${s.label} @${s.odds}`).join(" / ");
+      return `  • ${label}: ${sels}`;
+    });
+    blocks.push([head, ...lines].join("\n"));
+  }
+  return blocks.join("\n");
+}
+
+/** Tỉ lệ kèo đang mở (markets OPEN) của các trận đã có 2 đội — grounding cho phân tích kèo. */
+async function buildMarketsContext(): Promise<string> {
+  const markets = await prisma.market.findMany({
+    where: { status: "OPEN", match: { homeTeamId: { not: null }, awayTeamId: { not: null } } },
+    include: { selections: true, match: { include: { homeTeam: true, awayTeam: true } } },
+    orderBy: { match: { kickoff: "asc" } },
+  });
+  return formatMarketsForContext(markets);
+}
+
 /** Lịch + kết quả toàn giải (đã có 2 đội), 1 dòng/trận theo giờ VN — grounding sự kiện. */
 async function buildFixturesContext(): Promise<string> {
   const matches = await prisma.match.findMany({
@@ -162,12 +205,14 @@ async function buildUserContext(userId: string): Promise<string> {
 const SYSTEM_PROMPT =
   'Bạn là trợ lý của app dự đoán World Cup 2026 "Đường Đến Ngai Vàng" (chơi điểm ảo, KHÔNG tiền thật). ' +
   "Trả lời câu hỏi DỰA TRÊN dữ liệu được cung cấp bên dưới, gồm: (1) bài viết đã đăng, (2) LỊCH & KẾT QUẢ trận đấu, " +
-  "(3) DỮ LIỆU CỦA CHÍNH NGƯỜI DÙNG (số dư, lịch sử pickem, lịch sử cược) nếu có. Quy tắc:\n" +
+  "(3) TỈ LỆ KÈO đang mở, (4) DỮ LIỆU CỦA CHÍNH NGƯỜI DÙNG (số dư, lịch sử pickem, lịch sử cược) nếu có. Quy tắc:\n" +
   "- CHỈ dùng dữ liệu được cung cấp. Nếu thông tin không có, nói rõ là chưa có/không rõ và gợi ý xem mục Lịch hoặc Tin tức. " +
   "TUYỆT ĐỐI không bịa tỉ số, đội hình, thống kê hay lịch sử ngoài dữ liệu.\n" +
+  "- Có thể dùng TỈ LỆ KÈO để phân tích, so sánh các cửa và giả định kịch bản theo từng trận khi người dùng yêu cầu. " +
+  "Đây là sân chơi ĐIỂM ẢO cho vui — KHÔNG phải lời khuyên cá cược tiền thật; nhắc nhẹ điều đó khi phân tích kèo.\n" +
   '- Phần "DỮ LIỆU CỦA BẠN" là của riêng người dùng đang hỏi; không suy đoán dữ liệu của người khác.\n' +
   "- Giờ trận đấu hiển thị theo giờ Việt Nam (VN).\n" +
-  "- Trả lời bằng tiếng Việt, ngắn gọn, thân thiện.";
+  "- Trả lời bằng tiếng Việt, rõ ràng và đủ ý; khi phân tích trận/kèo có thể trình bày dài hơn theo từng cửa/kịch bản.";
 
 /**
  * Trợ lý hỏi đáp grounded: trả lời dựa trên bài đã đăng + lịch/kết quả trận đấu
@@ -196,8 +241,9 @@ export async function answerQuestion(
     };
   }
 
-  const [fixtures, userBlock] = await Promise.all([
+  const [fixtures, marketsBlock, userBlock] = await Promise.all([
     buildFixturesContext(),
+    buildMarketsContext(),
     opts.userId ? buildUserContext(opts.userId) : Promise.resolve(""),
   ]);
 
@@ -209,6 +255,10 @@ export async function answerQuestion(
     );
   }
   parts.push("## LỊCH & KẾT QUẢ TRẬN ĐẤU\n" + fixtures);
+  parts.push(
+    "## TỈ LỆ KÈO ĐANG MỞ (tham khảo để phân tích / giả định kịch bản; điểm ảo, không phải lời khuyên cá cược)\n" +
+      marketsBlock,
+  );
   if (userBlock) parts.push(userBlock);
   const context = parts.join("\n\n");
 
@@ -218,7 +268,7 @@ export async function answerQuestion(
         { role: "system", content: SYSTEM_PROMPT },
         { role: "user", content: `DỮ LIỆU:\n\n${context}\n\n---\nCâu hỏi của người dùng: ${question}` },
       ],
-      { maxTokens: 800, temperature: 0.3 },
+      { maxTokens: 2000, temperature: 0.3 },
     );
     return { answer: answer || "Xin lỗi, mình chưa trả lời được câu này.", sources };
   } catch (err) {
