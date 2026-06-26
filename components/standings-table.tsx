@@ -1,7 +1,14 @@
+import Link from "next/link";
 import type { StandingRow } from "@/lib/standings";
 
-/** Bảng xếp hạng 1 bảng đấu. Top 2 (đi tiếp) được tô số thứ tự xanh. */
-export function StandingsTable({ rows }: { rows: StandingRow[] }) {
+/** Bảng xếp hạng 1 bảng đấu. Top 2 (đi tiếp) tô số xanh; mỗi đội bấm vào xem chi tiết. */
+export function StandingsTable({
+  rows,
+  highlightTeamId,
+}: {
+  rows: StandingRow[];
+  highlightTeamId?: string;
+}) {
   if (rows.length === 0) return null;
   return (
     <div className="overflow-hidden rounded-xl border border-border bg-card">
@@ -20,7 +27,12 @@ export function StandingsTable({ rows }: { rows: StandingRow[] }) {
         </thead>
         <tbody>
           {rows.map((r, i) => (
-            <tr key={r.teamId} className="border-b border-border/50 last:border-0">
+            <tr
+              key={r.teamId}
+              className={`border-b border-border/50 last:border-0 ${
+                highlightTeamId === r.teamId ? "bg-primary/10" : ""
+              }`}
+            >
               <td className="py-1.5 pl-2 pr-1 text-center">
                 <span
                   className={`inline-flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-semibold ${
@@ -31,10 +43,13 @@ export function StandingsTable({ rows }: { rows: StandingRow[] }) {
                 </span>
               </td>
               <td className="px-1">
-                <div className="flex items-center gap-1.5">
+                <Link
+                  href={`/team/${r.teamId}`}
+                  className="flex items-center gap-1.5 hover:text-primary"
+                >
                   <span>{r.flag ?? "🏳️"}</span>
                   <span className="max-w-[88px] truncate font-medium">{r.name}</span>
-                </div>
+                </Link>
               </td>
               <td className="px-1 text-center text-muted-foreground">{r.played}</td>
               <td className="px-1 text-center text-muted-foreground">{r.won}</td>

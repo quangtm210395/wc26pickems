@@ -99,10 +99,20 @@ export default async function MatchPage({ params }: { params: Promise<{ id: stri
       </div>
 
       <div className="flex items-center justify-around gap-2">
-        <div className="flex flex-1 flex-col items-center gap-1">
-          <span className="text-4xl">{m.homeTeam?.flag ?? "🏳️"}</span>
-          <span className="text-center text-sm font-medium">{m.homeTeam?.name ?? "TBD"}</span>
-        </div>
+        {m.homeTeam ? (
+          <Link
+            href={`/team/${m.homeTeam.id}`}
+            className="flex flex-1 flex-col items-center gap-1 transition-opacity hover:opacity-80"
+          >
+            <span className="text-4xl">{m.homeTeam.flag ?? "🏳️"}</span>
+            <span className="text-center text-sm font-medium">{m.homeTeam.name}</span>
+          </Link>
+        ) : (
+          <div className="flex flex-1 flex-col items-center gap-1">
+            <span className="text-4xl">🏳️</span>
+            <span className="text-center text-sm font-medium">TBD</span>
+          </div>
+        )}
         <div className="px-2 text-center">
           {done || live ? (
             <div className="text-3xl font-bold tabular-nums">
@@ -120,10 +130,20 @@ export default async function MatchPage({ params }: { params: Promise<{ id: stri
             </div>
           )}
         </div>
-        <div className="flex flex-1 flex-col items-center gap-1">
-          <span className="text-4xl">{m.awayTeam?.flag ?? "🏳️"}</span>
-          <span className="text-center text-sm font-medium">{m.awayTeam?.name ?? "TBD"}</span>
-        </div>
+        {m.awayTeam ? (
+          <Link
+            href={`/team/${m.awayTeam.id}`}
+            className="flex flex-1 flex-col items-center gap-1 transition-opacity hover:opacity-80"
+          >
+            <span className="text-4xl">{m.awayTeam.flag ?? "🏳️"}</span>
+            <span className="text-center text-sm font-medium">{m.awayTeam.name}</span>
+          </Link>
+        ) : (
+          <div className="flex flex-1 flex-col items-center gap-1">
+            <span className="text-4xl">🏳️</span>
+            <span className="text-center text-sm font-medium">TBD</span>
+          </div>
+        )}
       </div>
 
       {m.venue && <p className="text-center text-xs text-muted-foreground">🏟️ {m.venue}</p>}
