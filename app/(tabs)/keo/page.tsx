@@ -230,12 +230,20 @@ export default async function KeoPage({
                 <div key={match.id} className="rounded-xl border border-border bg-card p-3 space-y-3">
                   {/* Match header */}
                   <div className="flex items-center gap-2">
-                    <div className="flex flex-1 items-center gap-1.5 overflow-hidden">
-                      <span className="text-xl leading-none">{match.homeTeam?.flag ?? "🏳️"}</span>
-                      <span className="truncate text-sm font-medium">
-                        {match.homeTeam?.name ?? "TBD"}
-                      </span>
-                    </div>
+                    {match.homeTeam ? (
+                      <Link
+                        href={`/team/${match.homeTeam.id}`}
+                        className="flex flex-1 items-center gap-1.5 overflow-hidden transition-opacity hover:opacity-80"
+                      >
+                        <span className="text-xl leading-none">{match.homeTeam.flag ?? "🏳️"}</span>
+                        <span className="truncate text-sm font-medium">{match.homeTeam.name}</span>
+                      </Link>
+                    ) : (
+                      <div className="flex flex-1 items-center gap-1.5 overflow-hidden">
+                        <span className="text-xl leading-none">🏳️</span>
+                        <span className="truncate text-sm font-medium">TBD</span>
+                      </div>
+                    )}
                     <div className="flex min-w-[60px] flex-col items-center text-center">
                       <span className="font-display text-base font-semibold leading-none tabular-nums">
                         {vnTime(match.kickoff)}
@@ -244,12 +252,20 @@ export default async function KeoPage({
                         {match.groupName ? `Bảng ${match.groupName}` : match.stage}
                       </span>
                     </div>
-                    <div className="flex flex-1 flex-row-reverse items-center gap-1.5 overflow-hidden text-right">
-                      <span className="text-xl leading-none">{match.awayTeam?.flag ?? "🏳️"}</span>
-                      <span className="truncate text-sm font-medium">
-                        {match.awayTeam?.name ?? "TBD"}
-                      </span>
-                    </div>
+                    {match.awayTeam ? (
+                      <Link
+                        href={`/team/${match.awayTeam.id}`}
+                        className="flex flex-1 flex-row-reverse items-center gap-1.5 overflow-hidden text-right transition-opacity hover:opacity-80"
+                      >
+                        <span className="text-xl leading-none">{match.awayTeam.flag ?? "🏳️"}</span>
+                        <span className="truncate text-sm font-medium">{match.awayTeam.name}</span>
+                      </Link>
+                    ) : (
+                      <div className="flex flex-1 flex-row-reverse items-center gap-1.5 overflow-hidden text-right">
+                        <span className="text-xl leading-none">🏳️</span>
+                        <span className="truncate text-sm font-medium">TBD</span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Markets */}
