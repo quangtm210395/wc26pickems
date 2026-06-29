@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { computeChampionPayouts } from "./champion";
+import { computeChampionPayouts, isPoolOpen } from "./champion";
 
 const get = (arr: { userId: string; payout: number }[], id: string) =>
   arr.find((x) => x.userId === id)!.payout;
@@ -70,4 +70,22 @@ describe("computeChampionPayouts", () => {
     expect(get(r, "a")).toBe(200);
     expect(get(r, "b")).toBe(300);
   });
+});
+
+describe("isPoolOpen", () => {
+  const now = new Date("2026-06-29T12:00:00Z");
+  const future = new Date("2026-06-29T17:00:00Z"); // trận sắp đá
+  const past = new Date("2026-06-28T19:00:00Z"); // trận đã đá
+
+  it("mở khi còn trận sắp đá (hạn ở tương lai) và chưa chốt", () =>
+    expect(isPoolOpen({ deadline: future, settled: false }, now)).toBe(true));
+
+  it("đóng khi đã qua hạn (loạt trận kế đã bắt đầu)", () =>
+    expect(isPoolOpen({ deadline: past, settled: false }, now)).toBe(false));
+
+  it("đóng khi không còn trận sắp đá (deadline null = giải đã hết)", () =>
+    expect(isPoolOpen({ deadline: null, settled: false }, now)).toBe(false));
+
+  it("đóng khi pool đã chốt", () =>
+    expect(isPoolOpen({ deadline: future, settled: true }, now)).toBe(false));
 });

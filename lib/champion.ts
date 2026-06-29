@@ -46,14 +46,23 @@ export function computeChampionPayouts(bets: PoolBet[], championTeamId: string):
 
 // ---------- DB ----------
 
-/** Hạn đặt = giờ trận knock-out sớm nhất (đóng pool khi vòng loại trực tiếp bắt đầu). */
+/**
+ * Hạn đặt pool = giờ trận SẮP TỚI gần nhất (đóng pool khi loạt trận kế tiếp bắt đầu).
+ * null = không còn trận nào sắp đá (giải đã hết). Cho phép đặt champion tới sát loạt trận kế.
+ */
 export async function getPoolDeadline(): Promise<Date | null> {
-  const ko = await prisma.match.findFirst({
-    where: { stage: { not: "GROUP" } },
+  const next = await prisma.match.findFirst({
+    where: { status: "SCHEDULED", kickoff: { gt: new Date() } },
     orderBy: { kickoff: "asc" },
     select: { kickoff: true },
   });
-  return ko?.kickoff ?? null;
+  return next?.kickoff ?? null;
+}
+
+/** Pool còn mở không (PURE): chưa chốt VÀ còn hạn (còn trận sắp đá ở tương lai). */
+export function isPoolOpen(opts: { deadline: Date | null; settled: boolean }, now: Date): boolean {
+  if (opts.settled) return false;
+  return opts.deadline != null && now < opts.deadline;
 }
 
 export async function getPoolStatus(): Promise<{
@@ -67,7 +76,7 @@ export async function getPoolStatus(): Promise<{
     prisma.championBet.count({ where: { status: "PENDING" } }),
   ]);
   const settled = total > 0 && pending === 0;
-  const open = !settled && (deadline == null || new Date() < deadline);
+  const open = isPoolOpen({ deadline, settled }, new Date());
   return { deadline, open, settled };
 }
 
@@ -81,7 +90,7 @@ export async function placeChampionBet(
   }
   const status = await getPoolStatus();
   if (!status.open) {
-    return { ok: false, reason: "Pool đã đóng (vòng knock-out đã bắt đầu)" };
+    return { ok: false, reason: "Pool đã đóng (đã tới giờ trận kế tiếp)" };
   }
   const team = await prisma.team.findUnique({ where: { id: teamId }, select: { id: true, name: true } });
   if (!team) return { ok: false, reason: "Đội không hợp lệ" };
